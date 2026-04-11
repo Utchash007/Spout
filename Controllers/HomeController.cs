@@ -49,6 +49,7 @@ public class HomeController : Controller
         return initials.ToUpper();
     }
 
+    [Authorize]
     public async Task<IActionResult> Index()
     {
         var posts = await _postService.FetchPosts();
