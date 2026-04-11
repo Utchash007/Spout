@@ -64,6 +64,9 @@ Requirements/
 # Frontend prototypes (static HTML design files, not served at runtime)
 Frontend/
 
+# Third-party client libraries (restore via libman or npm)
+wwwroot/lib/
+
 # .NET Core
 *.dll
 *.pdb
