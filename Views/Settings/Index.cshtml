@@ -1,0 +1,963 @@
+@{
+    ViewData["Title"] = "Settings";
+    Layout = null;
+    ViewData["ActiveNav"] = "settings";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sprout — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="~/css/navbar.css" asp-append-version="true" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream:      #F1F3E0;
+      --sage-lt:    #D2DCB6;
+      --sage-md:    #A1BC98;
+      --sage-dk:    #778873;
+      --sage-xdk:   #5e6d5a;
+      --sage-mid2:  #8fb08a;
+      --warm-tan:   #c4b59a;
+      --white:      #ffffff;
+      --text:       #2c3028;
+      --muted:      #6b7a67;
+      --faint:      #a8b3a5;
+      --accent:     #e07a5f;
+      --border:     1.5px solid var(--sage-lt);
+      --border-thin: 1px solid var(--sage-lt);
+      --r-pill:   9999px;
+      --r-card:   16px;
+      --r-elem:   10px;
+      --r-sm:     8px;
+      --t-ui:     0.2s ease;
+      --t-layout: 0.3s ease;
+      --sidebar-w:   240px;
+      --sidebar-col: 64px;
+      --sidebar-r:   280px;
+      --shadow-btn:  0 4px 14px rgba(119,136,115,0.28);
+      --shadow-card: 0 2px 8px rgba(119,136,115,0.1);
+    }
+
+    body {
+      background: var(--cream);
+      font-family: 'Nunito', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+    button, input, textarea, select { font-family: inherit; }
+
+    .layout {
+      display: grid; grid-template-columns: 1fr;
+      margin-left: var(--sidebar-w);
+      margin-right: 0;
+      min-height: calc(100vh - 60px);
+      transition: margin-left var(--t-layout);
+    }
+    .layout.collapsed { margin-left: var(--sidebar-col); }
+
+    /* ── LEFT SIDEBAR (from _SidebarLeft partial) ── */
+    .sidebar-left {
+      position: fixed; left: 0; top: 60px;
+      width: var(--sidebar-w);
+      height: calc(100vh - 60px);
+      background: var(--cream); border-right: var(--border);
+      padding: 20px 12px 16px;
+      overflow-y: auto; overflow-x: hidden;
+      z-index: 50;
+      display: flex; flex-direction: column;
+      transition: width var(--t-layout);
+    }
+    .sidebar-left.collapsed { width: var(--sidebar-col); }
+
+    .sidebar-left .nav-item span,
+    .sidebar-left .sidebar-section h4,
+    .sidebar-left .btn-post span,
+    .sidebar-left .toggle-label {
+      opacity: 1; max-width: 200px;
+      overflow: hidden; white-space: nowrap;
+      transition: opacity var(--t-ui) 0.05s, max-width var(--t-ui) 0.05s;
+    }
+    .sidebar-left.collapsed .nav-item span,
+    .sidebar-left.collapsed .sidebar-section h4,
+    .sidebar-left.collapsed .btn-post span,
+    .sidebar-left.collapsed .toggle-label {
+      opacity: 0; max-width: 0;
+      transition: opacity var(--t-ui), max-width var(--t-ui);
+    }
+    .sidebar-left.collapsed .item-count { display: none; }
+    .sidebar-left.collapsed .nav-item { justify-content: center; padding: 11px; }
+    .sidebar-left.collapsed .btn-post { border-radius: var(--r-pill); padding: 12px; min-width: 40px; }
+    .sidebar-left.collapsed .sidebar-section { margin-top: 16px; }
+    .sidebar-left.collapsed .sidebar-toggle { justify-content: center; }
+
+    .nav-menu { display: flex; flex-direction: column; gap: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; border-radius: var(--r-elem);
+      text-decoration: none; color: var(--muted);
+      font-size: 0.93rem; font-weight: 600;
+      transition: background var(--t-ui), color var(--t-ui);
+    }
+    .nav-item:hover { background: var(--sage-lt); color: var(--text); }
+    .nav-item.active { background: var(--sage-dk); color: var(--cream); font-weight: 800; }
+    .nav-item svg { flex-shrink: 0; }
+    .nav-item .item-count {
+      margin-left: auto; font-size: 0.72rem;
+      background: var(--sage-md); color: var(--white);
+      border-radius: var(--r-pill); padding: 2px 7px; font-weight: 800;
+    }
+    .nav-item.active .item-count { background: rgba(241,243,224,0.3); }
+
+    .sidebar-section { margin-top: 28px; }
+    .sidebar-section h4 {
+      font-size: 0.72rem; font-weight: 800;
+      color: var(--sage-md); text-transform: uppercase;
+      letter-spacing: 1px; padding: 0 14px; margin-bottom: 8px;
+    }
+
+    .btn-post {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; width: 100%; padding: 12px 16px; margin-top: 20px;
+      background: var(--sage-dk); color: var(--cream);
+      border: none; border-radius: var(--r-pill);
+      font-size: 0.92rem; font-weight: 800; cursor: pointer;
+      transition: background var(--t-ui), transform var(--t-ui), border-radius var(--t-layout), padding var(--t-layout);
+      box-shadow: var(--shadow-btn); flex-shrink: 0;
+    }
+    .btn-post:hover { background: var(--sage-xdk); transform: translateY(-1px); }
+    .btn-post:active { transform: translateY(0); }
+
+    .sidebar-toggle {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 10px 14px; margin-top: auto;
+      border: none; border-top: var(--border);
+      background: transparent; cursor: pointer;
+      color: var(--muted); font-size: 0.82rem; font-weight: 700;
+      transition: background var(--t-ui), color var(--t-ui); flex-shrink: 0;
+    }
+    .sidebar-toggle:hover { background: var(--sage-lt); color: var(--sage-dk); }
+    .sidebar-toggle .toggle-icon {
+      width: 28px; height: 28px; border-radius: var(--r-sm);
+      background: var(--sage-lt);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background var(--t-ui);
+    }
+    .sidebar-toggle:hover .toggle-icon { background: var(--sage-md); }
+
+    .feed {
+      border-left: var(--border);
+      background: var(--white);
+      min-height: calc(100vh - 60px);
+    }
+
+    .feed-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px 14px;
+      border-bottom: var(--border);
+      position: sticky; top: 60px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px); z-index: 10;
+    }
+    .feed-header h2 {
+      font-size: 1.1rem; font-weight: 900;
+      color: var(--sage-dk); letter-spacing: -0.3px;
+    }
+
+    .settings-body {
+      display: flex;
+      min-height: calc(100vh - 110px);
+    }
+
+    .settings-nav {
+      width: 220px;
+      flex-shrink: 0;
+      border-right: var(--border);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: var(--cream);
+    }
+
+    .settings-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--r-elem);
+      border: none; background: transparent;
+      color: var(--muted); font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; text-align: left; width: 100%;
+      transition: background var(--t-ui), color var(--t-ui);
+    }
+    .settings-nav-item:hover { background: var(--sage-lt); color: var(--text); }
+    .settings-nav-item.active { background: var(--sage-dk); color: var(--cream); font-weight: 800; }
+    .settings-nav-item svg { flex-shrink: 0; }
+    .settings-nav-item.danger { color: var(--accent); }
+    .settings-nav-item.danger:hover { background: rgba(224,122,95,0.1); color: var(--accent); }
+    .settings-nav-item.danger.active { background: var(--accent); color: var(--white); }
+
+    .settings-panel-area {
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto;
+    }
+
+    .settings-panel { display: none; }
+    .settings-panel.active { display: block; }
+
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .panel-header h3 {
+      font-size: 1rem; font-weight: 900;
+      color: var(--text); letter-spacing: -0.2px;
+    }
+
+    .form-section {
+      background: var(--white);
+      border: var(--border);
+      border-radius: var(--r-card);
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-card);
+    }
+    .form-section-title {
+      font-size: 0.78rem; font-weight: 800;
+      color: var(--sage-md); text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 18px;
+    }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label {
+      display: block; font-size: 0.82rem; font-weight: 700;
+      color: var(--sage-dk); margin-bottom: 7px;
+      letter-spacing: 0.3px; text-transform: uppercase;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: 11px 14px;
+      border: var(--border); border-radius: var(--r-elem);
+      font-size: 0.93rem; color: var(--text);
+      background: var(--cream); outline: none;
+      transition: border-color var(--t-ui), box-shadow var(--t-ui), background var(--t-ui);
+      appearance: none; -webkit-appearance: none;
+    }
+    .form-group textarea { resize: vertical; line-height: 1.55; }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--sage-md);
+      box-shadow: 0 0 0 3px rgba(161,188,152,0.18);
+      background: var(--white);
+    }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: var(--faint); }
+    .input-hint {
+      font-size: 0.77rem; color: var(--faint);
+      margin-top: 5px; font-weight: 500;
+    }
+    .char-counter {
+      font-size: 0.77rem; color: var(--faint);
+      margin-top: 5px; text-align: right; font-weight: 600;
+    }
+    .char-counter.warn { color: var(--accent); }
+
+    .btn-primary {
+      padding: 10px 24px;
+      background: var(--sage-dk); color: var(--cream);
+      border: none; border-radius: var(--r-pill);
+      font-size: 0.9rem; font-weight: 800; cursor: pointer;
+      transition: background var(--t-ui), transform var(--t-ui);
+      box-shadow: var(--shadow-btn);
+    }
+    .btn-primary:hover { background: var(--sage-xdk); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-outline {
+      padding: 9px 20px;
+      background: transparent;
+      border: 1.5px solid var(--sage-dk);
+      color: var(--sage-dk);
+      border-radius: var(--r-pill);
+      font-size: 0.88rem; font-weight: 700; cursor: pointer;
+      transition: background var(--t-ui), color var(--t-ui);
+    }
+    .btn-outline:hover { background: var(--sage-dk); color: var(--cream); }
+
+    .btn-outline-accent {
+      padding: 10px 24px;
+      background: transparent;
+      border: 1.5px solid var(--accent);
+      color: var(--accent);
+      border-radius: var(--r-pill);
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      transition: background var(--t-ui), color var(--t-ui);
+    }
+    .btn-outline-accent:hover { background: rgba(224,122,95,0.08); }
+
+    .btn-danger {
+      padding: 10px 24px;
+      background: var(--accent); color: var(--white);
+      border: none; border-radius: var(--r-pill);
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      transition: background var(--t-ui), transform var(--t-ui);
+      box-shadow: 0 4px 14px rgba(224,122,95,0.3);
+    }
+    .btn-danger:hover { background: #c9634a; transform: translateY(-1px); }
+
+    .btn-sm {
+      padding: 6px 16px;
+      border-radius: var(--r-pill);
+      font-size: 0.8rem; font-weight: 700; cursor: pointer;
+      transition: background var(--t-ui), color var(--t-ui);
+    }
+    .btn-sm-outline {
+      background: transparent;
+      border: 1.5px solid var(--sage-lt);
+      color: var(--muted);
+    }
+    .btn-sm-outline:hover { border-color: var(--sage-dk); color: var(--sage-dk); }
+    .btn-sm-danger {
+      background: transparent;
+      border: 1.5px solid rgba(224,122,95,0.4);
+      color: var(--accent);
+    }
+    .btn-sm-danger:hover { background: rgba(224,122,95,0.08); }
+
+    .profile-media-edit {
+      position: relative;
+      margin-bottom: 56px;
+    }
+    .banner-edit {
+      height: 130px;
+      background: linear-gradient(135deg, var(--sage-lt) 0%, var(--sage-md) 60%, var(--sage-dk) 100%);
+      border-radius: var(--r-card) var(--r-card) 0 0;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: filter var(--t-ui);
+    }
+    .banner-edit:hover { filter: brightness(0.88); }
+    .banner-overlay {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.18);
+      opacity: 0; transition: opacity var(--t-ui);
+    }
+    .banner-edit:hover .banner-overlay { opacity: 1; }
+    .banner-overlay span {
+      background: rgba(0,0,0,0.5);
+      color: #fff; font-size: 0.8rem; font-weight: 700;
+      padding: 6px 14px; border-radius: var(--r-pill);
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .avatar-edit-wrap {
+      position: absolute;
+      bottom: -44px; left: 24px;
+    }
+    .avatar-edit {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--sage-md);
+      border: 3px solid var(--white);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--white); font-weight: 900; font-size: 1.4rem;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: filter var(--t-ui);
+      box-shadow: 0 2px 12px rgba(119,136,115,0.3);
+    }
+    .avatar-edit:hover { filter: brightness(0.85); }
+    .avatar-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.3);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity var(--t-ui); border-radius: 50%;
+    }
+    .avatar-edit:hover .avatar-overlay { opacity: 1; }
+
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: var(--border-thin);
+    }
+    .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .toggle-info { flex: 1; }
+    .toggle-label-text {
+      font-size: 0.93rem; font-weight: 700; color: var(--text);
+    }
+    .toggle-desc {
+      font-size: 0.78rem; color: var(--muted); margin-top: 2px; font-weight: 500;
+    }
+    .toggle-switch {
+      position: relative; width: 44px; height: 24px; flex-shrink: 0; margin-left: 16px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: var(--sage-lt); border-radius: var(--r-pill);
+      transition: background var(--t-ui);
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; left: 3px; bottom: 3px;
+      background: var(--white); border-radius: 50%;
+      transition: transform var(--t-ui);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--sage-dk); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    .account-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0; border-bottom: var(--border-thin);
+    }
+    .account-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .account-row-label {
+      font-size: 0.82rem; font-weight: 700;
+      color: var(--sage-dk); text-transform: uppercase;
+      letter-spacing: 0.3px; margin-bottom: 3px;
+    }
+    .account-row-value {
+      font-size: 0.93rem; font-weight: 600; color: var(--text);
+    }
+
+    .connected-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: var(--border-thin);
+    }
+    .connected-row:last-child { border-bottom: none; }
+    .connected-icon {
+      width: 36px; height: 36px; border-radius: var(--r-sm);
+      background: var(--cream); border: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .connected-info { flex: 1; }
+    .connected-name { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+    .connected-status { font-size: 0.78rem; font-weight: 600; }
+    .connected-status.on { color: var(--sage-md); }
+    .connected-status.off { color: var(--faint); }
+
+    .session-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: var(--border-thin);
+    }
+    .session-row:last-child { border-bottom: none; }
+    .session-icon {
+      width: 36px; height: 36px; border-radius: var(--r-sm);
+      background: var(--cream); border: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--sage-dk); flex-shrink: 0;
+    }
+    .session-info { flex: 1; }
+    .session-device { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+    .session-meta { font-size: 0.78rem; color: var(--muted); font-weight: 500; margin-top: 1px; }
+
+    .theme-cards {
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+    .theme-card {
+      flex: 1; min-width: 100px;
+      border: 2px solid var(--sage-lt);
+      border-radius: var(--r-card);
+      padding: 16px 12px;
+      cursor: pointer; text-align: center;
+      transition: border-color var(--t-ui), box-shadow var(--t-ui);
+      background: var(--white);
+    }
+    .theme-card.selected {
+      border-color: var(--sage-dk);
+      box-shadow: 0 0 0 3px rgba(119,136,115,0.15);
+    }
+    .theme-card .theme-preview {
+      width: 48px; height: 32px; border-radius: var(--r-sm);
+      margin: 0 auto 10px;
+    }
+    .theme-card .theme-name {
+      font-size: 0.85rem; font-weight: 700; color: var(--text);
+    }
+
+    .danger-block {
+      display: flex; align-items: flex-start;
+      gap: 20px; padding: 20px 0;
+      border-bottom: var(--border-thin);
+    }
+    .danger-block:last-child { border-bottom: none; padding-bottom: 0; }
+    .danger-block-info { flex: 1; }
+    .danger-block-title { font-size: 0.95rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .danger-block-desc { font-size: 0.82rem; color: var(--muted); font-weight: 500; line-height: 1.5; }
+
+    .notif-group { margin-bottom: 6px; }
+    .notif-group-title {
+      font-size: 0.82rem; font-weight: 800;
+      color: var(--sage-dk); text-transform: uppercase;
+      letter-spacing: 0.5px; padding: 10px 0 4px;
+      border-bottom: var(--border-thin); margin-bottom: 4px;
+    }
+
+    @@media (max-width: 900px) {
+      .layout { margin-left: var(--sidebar-col); }
+    }
+    @@media (max-width: 700px) {
+      .settings-nav { width: 100%; border-right: none; border-bottom: var(--border); flex-direction: row; overflow-x: auto; padding: 12px; gap: 4px; }
+      .settings-body { flex-direction: column; }
+      .settings-panel-area { padding: 20px 16px; }
+    }
+    @@media (max-width: 600px) {
+      .layout { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <partial name="_Navbar" />
+
+  <div class="layout" id="mainLayout">
+
+    <partial name="_SidebarLeft" />
+
+    <main class="feed">
+      <div class="feed-header">
+        <h2>Settings</h2>
+      </div>
+
+      <div class="settings-body">
+
+        <nav class="settings-nav">
+          <button class="settings-nav-item active" data-panel="edit-profile">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            Edit Profile
+          </button>
+          <button class="settings-nav-item" data-panel="account">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Account
+          </button>
+          <button class="settings-nav-item" data-panel="privacy">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Privacy &amp; Safety
+          </button>
+          <button class="settings-nav-item" data-panel="notifications">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            Notifications
+          </button>
+          <button class="settings-nav-item" data-panel="appearance">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            Appearance
+          </button>
+          <button class="settings-nav-item danger" data-panel="danger">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Danger Zone
+          </button>
+        </nav>
+
+        <div class="settings-panel-area">
+
+          <div class="settings-panel active" id="panel-edit-profile">
+            <div class="panel-header">
+              <h3>Edit Profile</h3>
+              <button class="btn-primary">Save Changes</button>
+            </div>
+
+            <div class="form-section" style="padding:0;overflow:hidden;">
+              <div class="profile-media-edit">
+                <div class="banner-edit">
+                  <div class="banner-overlay">
+                    <span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                      Change Banner
+                    </span>
+                  </div>
+                </div>
+                <div class="avatar-edit-wrap">
+                  <div class="avatar-edit">
+                    EG
+                    <div class="avatar-overlay">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="padding: 16px 24px 24px;">
+                <div class="form-group">
+                  <label for="displayName">Display Name</label>
+                  <input type="text" id="displayName" value="Emma Green" maxlength="50" />
+                </div>
+                <div class="form-group">
+                  <label for="username">Username</label>
+                  <input type="text" id="username" value="@@emmagreen" maxlength="30" />
+                  <div class="input-hint">sprout.app/@@emmagreen</div>
+                </div>
+                <div class="form-group">
+                  <label for="bio">Bio</label>
+                  <textarea id="bio" rows="3" maxlength="160" placeholder="Tell the world what you're growing…"></textarea>
+                  <div class="char-counter" id="bioCounter">0 / 160</div>
+                </div>
+                <div class="form-group">
+                  <label for="website">Website</label>
+                  <input type="url" id="website" placeholder="yoursite.com" />
+                </div>
+                <div class="form-group">
+                  <label for="location">Location</label>
+                  <input type="text" id="location" placeholder="City, Country" />
+                </div>
+                <div class="form-group">
+                  <label for="dob">Date of Birth</label>
+                  <input type="date" id="dob" />
+                </div>
+                <div class="form-group">
+                  <label for="gender">Gender</label>
+                  <select id="gender">
+                    <option>Prefer not to say</option>
+                    <option>Female</option>
+                    <option>Male</option>
+                    <option>Non-binary</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-account">
+            <div class="panel-header">
+              <h3>Account</h3>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Login &amp; Security</div>
+              <div class="account-row">
+                <div class="account-row-info">
+                  <div class="account-row-label">Email</div>
+                  <div class="account-row-value">em***@@example.com</div>
+                </div>
+                <button class="btn-outline btn-sm">Change Email</button>
+              </div>
+              <div class="account-row">
+                <div class="account-row-info">
+                  <div class="account-row-label">Password</div>
+                  <div class="account-row-value">Last changed 3 months ago</div>
+                </div>
+                <button class="btn-outline btn-sm">Change Password</button>
+              </div>
+              <div class="account-row">
+                <div class="account-row-info">
+                  <div class="account-row-label">Phone Number</div>
+                  <div class="account-row-value" style="color:var(--faint)">Not added</div>
+                </div>
+                <button class="btn-outline btn-sm">Add Phone</button>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Connected Accounts</div>
+              <div class="connected-row">
+                <div class="connected-icon">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                    <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+                    <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                  </svg>
+                </div>
+                <div class="connected-info">
+                  <div class="connected-name">Google</div>
+                  <div class="connected-status on">Connected</div>
+                </div>
+                <button class="btn-sm btn-sm-outline">Disconnect</button>
+              </div>
+              <div class="connected-row">
+                <div class="connected-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#000">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                  </svg>
+                </div>
+                <div class="connected-info">
+                  <div class="connected-name">Apple</div>
+                  <div class="connected-status off">Not connected</div>
+                </div>
+                <button class="btn-outline btn-sm">Connect</button>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Active Sessions</div>
+              <div class="session-row">
+                <div class="session-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                </div>
+                <div class="session-info">
+                  <div class="session-device">Chrome on Windows</div>
+                  <div class="session-meta">Warsaw, Poland · Active now</div>
+                </div>
+                <button class="btn-sm btn-sm-danger" style="opacity:0.5;cursor:default;" title="Current session">Current</button>
+              </div>
+              <div class="session-row">
+                <div class="session-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+                  </svg>
+                </div>
+                <div class="session-info">
+                  <div class="session-device">Safari on iPhone</div>
+                  <div class="session-meta">Warsaw, Poland · 2 hours ago</div>
+                </div>
+                <button class="btn-sm btn-sm-danger">Revoke</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-privacy">
+            <div class="panel-header">
+              <h3>Privacy &amp; Safety</h3>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Account Privacy</div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label-text">Private Account</div>
+                  <div class="toggle-desc">Only approved followers can see your posts</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label-text">Show in Search</div>
+                  <div class="toggle-desc">Let others find your account by name or username</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label-text">Allow DMs from Everyone</div>
+                  <div class="toggle-desc">Anyone can send you a direct message</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label-text">Show Read Receipts</div>
+                  <div class="toggle-desc">Let people know when you've read their messages</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Blocked Accounts</div>
+              <div style="color:var(--faint);font-size:0.88rem;font-weight:600;padding:8px 0;">
+                You haven't blocked anyone yet.
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Muted Words</div>
+              <div class="form-group" style="margin-bottom:0;">
+                <input type="text" placeholder="Add a word or phrase to mute…" />
+                <div class="input-hint">Posts containing muted words won't appear in your feed.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-notifications">
+            <div class="panel-header">
+              <h3>Notifications</h3>
+            </div>
+
+            <div class="form-section">
+              <div class="notif-group-title">Push Notifications</div>
+              <div class="notif-group">
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">New Followers</div></div>
+                  <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Likes</div></div>
+                  <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Comments</div></div>
+                  <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Reposts</div></div>
+                  <label class="toggle-switch"><input type="checkbox" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Mentions</div></div>
+                  <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Messages</div></div>
+                  <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="notif-group-title">Email Notifications</div>
+              <div class="notif-group">
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">New Followers</div></div>
+                  <label class="toggle-switch"><input type="checkbox" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Likes</div></div>
+                  <label class="toggle-switch"><input type="checkbox" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Comments</div></div>
+                  <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Reposts</div></div>
+                  <label class="toggle-switch"><input type="checkbox" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Mentions</div></div>
+                  <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info"><div class="toggle-label-text">Messages</div></div>
+                  <label class="toggle-switch"><input type="checkbox" /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-appearance">
+            <div class="panel-header">
+              <h3>Appearance</h3>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Theme</div>
+              <div class="theme-cards">
+                <div class="theme-card selected">
+                  <div class="theme-preview" style="background:linear-gradient(135deg,#F1F3E0,#ffffff);border:1.5px solid #D2DCB6;"></div>
+                  <div class="theme-name">Light</div>
+                </div>
+                <div class="theme-card">
+                  <div class="theme-preview" style="background:linear-gradient(135deg,#1a1f1a,#2c3028);border:1.5px solid #3a4038;"></div>
+                  <div class="theme-name">Dark</div>
+                </div>
+                <div class="theme-card">
+                  <div class="theme-preview" style="background:linear-gradient(135deg,#F1F3E0 50%,#1a1f1a 50%);border:1.5px solid #D2DCB6;"></div>
+                  <div class="theme-name">System</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="settings-panel" id="panel-danger">
+            <div class="panel-header">
+              <h3 style="color:var(--accent);">Danger Zone</h3>
+            </div>
+
+            <div class="form-section" style="border-color:rgba(224,122,95,0.25);">
+              <div class="danger-block">
+                <div class="danger-block-info">
+                  <div class="danger-block-title">Deactivate Account</div>
+                  <div class="danger-block-desc">Temporarily disable your account. Your profile and posts will be hidden until you reactivate by logging back in.</div>
+                </div>
+                <button class="btn-outline-accent">Deactivate</button>
+              </div>
+              <div class="danger-block">
+                <div class="danger-block-info">
+                  <div class="danger-block-title">Delete Account</div>
+                  <div class="danger-block-desc">Permanently delete your account and all your data. This action cannot be undone and all your posts, followers, and data will be lost forever.</div>
+                </div>
+                <button class="btn-danger">Delete Account</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const sidebar     = document.getElementById('sidebar');
+    const layout      = document.getElementById('mainLayout');
+    const toggleBtn   = document.getElementById('sidebarToggle');
+    const toggleIcon  = document.getElementById('toggleIcon');
+    const toggleLabel = toggleBtn.querySelector('.toggle-label');
+    let collapsed = false;
+
+    toggleBtn.addEventListener('click', () => {
+      collapsed = !collapsed;
+      sidebar.classList.toggle('collapsed', collapsed);
+      layout.classList.toggle('collapsed', collapsed);
+      if (collapsed) {
+        toggleIcon.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
+        toggleLabel.textContent = 'Expand';
+        toggleBtn.title = 'Expand sidebar';
+      } else {
+        toggleIcon.innerHTML = '<polyline points="15 18 9 12 15 6"/>';
+        toggleLabel.textContent = 'Collapse';
+        toggleBtn.title = 'Collapse sidebar';
+      }
+    });
+
+    const navItems = document.querySelectorAll('.settings-nav-item');
+    const panels   = document.querySelectorAll('.settings-panel');
+
+    navItems.forEach(btn => {
+      btn.addEventListener('click', () => {
+        navItems.forEach(b => b.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const panelId = btn.getAttribute('data-panel');
+        document.getElementById('panel-' + panelId).classList.add('active');
+      });
+    });
+
+    const bioInput = document.getElementById('bio');
+    const bioCounter = document.getElementById('bioCounter');
+    if (bioInput && bioCounter) {
+      bioInput.addEventListener('input', () => {
+        const len = bioInput.value.length;
+        bioCounter.textContent = len + ' / 160';
+        bioCounter.classList.toggle('warn', len > 140);
+      });
+    }
+  </script>
+</body>
+</html>

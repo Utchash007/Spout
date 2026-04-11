@@ -1,0 +1,82 @@
+<!-- Left sidebar -->
+<aside class="sidebar-left" id="sidebar">
+  <nav class="nav-menu">
+    <a asp-controller="Home" asp-action="Index" class="nav-item @(ViewData["ActiveNav"]?.ToString() == "home" ? "active" : "")">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>Home</span>
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <span>Explore</span>
+    </a>
+    <a asp-controller="Notifications" asp-action="Index" class="nav-item @(ViewData["ActiveNav"]?.ToString() == "notifications" ? "active" : "")">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span>Notifications</span>
+      <span class="item-count">4</span>
+    </a>
+    <a asp-controller="Messages" asp-action="Index" class="nav-item @(ViewData["ActiveNav"]?.ToString() == "messages" ? "active" : "")">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span>Messages</span>
+      <span class="item-count">2</span>
+    </a>
+    <a href="#" class="nav-item">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span>Bookmarks</span>
+    </a>
+    <a asp-controller="Profile" asp-action="Index" class="nav-item @(ViewData["ActiveNav"]?.ToString() == "profile" ? "active" : "")">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>Profile</span>
+    </a>
+    <a asp-controller="Settings" asp-action="Index" class="nav-item @(ViewData["ActiveNav"]?.ToString() == "settings" ? "active" : "")">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span>Settings</span>
+    </a>
+  </nav>
+
+  <button class="btn-post">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    <span>New Sprout</span>
+  </button>
+
+  <div class="sidebar-section">
+    <h4>Your Circles</h4>
+    <a href="#" class="nav-item">
+      <span style="width:20px;height:20px;border-radius:50%;background:var(--sage-md);display:inline-block;flex-shrink:0;"></span>
+      <span>Nature Lovers</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span style="width:20px;height:20px;border-radius:50%;background:var(--warm-tan);display:inline-block;flex-shrink:0;"></span>
+      <span>Gardening Club</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span style="width:20px;height:20px;border-radius:50%;background:var(--sage-mid2);display:inline-block;flex-shrink:0;"></span>
+      <span>Eco Warriors</span>
+    </a>
+  </div>
+
+  <!-- Toggle button -->
+  <button class="sidebar-toggle" id="sidebarToggle" title="Collapse sidebar">
+    <span class="toggle-icon">
+      <svg id="toggleIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </span>
+    <span class="toggle-label">Collapse</span>
+  </button>
+</aside>

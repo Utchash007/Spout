@@ -1,0 +1,903 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Messages";
+    ViewData["ActiveNav"] = "messages";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sprout — Messages</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="~/css/navbar.css" asp-append-version="true" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --sidebar-w:   240px;
+      --sidebar-col: 64px;
+      --sidebar-r:   280px;
+    }
+
+    body {
+      background: var(--cream);
+      font-family: 'Nunito', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    button, input, textarea, select { font-family: inherit; }
+
+    /* ── LAYOUT ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      margin-left: var(--sidebar-w);
+      margin-right: var(--sidebar-r);
+      min-height: calc(100vh - 60px);
+      transition: margin-left var(--t-layout);
+    }
+    .layout.collapsed { margin-left: var(--sidebar-col); }
+
+    /* ── LEFT SIDEBAR ── */
+    .sidebar-left {
+      position: fixed;
+      left: 0;
+      top: 60px;
+      width: var(--sidebar-w);
+      height: calc(100vh - 60px);
+      background: var(--cream);
+      border-right: var(--border);
+      padding: 20px 12px 16px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      transition: width var(--t-layout);
+    }
+    .sidebar-left.collapsed { width: var(--sidebar-col); }
+
+    .sidebar-left .nav-item span,
+    .sidebar-left .sidebar-section h4,
+    .sidebar-left .btn-post span,
+    .sidebar-left .toggle-label {
+      opacity: 1;
+      max-width: 200px;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: opacity var(--t-ui) 0.05s, max-width var(--t-ui) 0.05s;
+    }
+    .sidebar-left.collapsed .nav-item span,
+    .sidebar-left.collapsed .sidebar-section h4,
+    .sidebar-left.collapsed .btn-post span,
+    .sidebar-left.collapsed .toggle-label {
+      opacity: 0;
+      max-width: 0;
+      transition: opacity var(--t-ui), max-width var(--t-ui);
+    }
+    .sidebar-left.collapsed .item-count { display: none; }
+    .sidebar-left.collapsed .nav-item { justify-content: center; padding: 11px; }
+    .sidebar-left.collapsed .btn-post { border-radius: var(--r-pill); padding: 12px; min-width: 40px; }
+    .sidebar-left.collapsed .sidebar-section { margin-top: 16px; }
+    .sidebar-left.collapsed .sidebar-toggle { justify-content: center; }
+
+    .nav-menu { display: flex; flex-direction: column; gap: 4px; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-radius: var(--r-elem);
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.93rem;
+      font-weight: 600;
+      transition: background var(--t-ui), color var(--t-ui);
+    }
+    .nav-item:hover { background: var(--sage-lt); color: var(--text); }
+    .nav-item.active { background: var(--sage-dk); color: var(--cream); font-weight: 800; }
+    .nav-item svg { flex-shrink: 0; }
+    .nav-item .item-count {
+      margin-left: auto;
+      font-size: 0.72rem;
+      background: var(--sage-md);
+      color: var(--white);
+      border-radius: var(--r-pill);
+      padding: 2px 7px;
+      font-weight: 800;
+    }
+    .nav-item.active .item-count { background: rgba(241, 243, 224, 0.3); }
+
+    .sidebar-section { margin-top: 28px; }
+    .sidebar-section h4 {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--sage-md);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0 14px;
+      margin-bottom: 8px;
+    }
+
+    .btn-post {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 16px;
+      margin-top: 20px;
+      background: var(--sage-dk);
+      color: var(--cream);
+      border: none;
+      border-radius: var(--r-pill);
+      font-size: 0.92rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background var(--t-ui), transform var(--t-ui), border-radius var(--t-layout), padding var(--t-layout);
+      box-shadow: var(--shadow-btn);
+      flex-shrink: 0;
+    }
+    .btn-post:hover { background: var(--sage-xdk); transform: translateY(-1px); }
+    .btn-post:active { transform: translateY(0); }
+
+    .sidebar-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 14px;
+      margin-top: auto;
+      border: none;
+      border-top: var(--border);
+      background: transparent;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      transition: background var(--t-ui), color var(--t-ui);
+      flex-shrink: 0;
+    }
+    .sidebar-toggle:hover { background: var(--sage-lt); color: var(--sage-dk); }
+    .sidebar-toggle .toggle-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--r-sm);
+      background: var(--sage-lt);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background var(--t-ui);
+    }
+    .sidebar-toggle:hover .toggle-icon { background: var(--sage-md); }
+
+    /* ── RIGHT SIDEBAR ── */
+    .sidebar-right {
+      position: fixed;
+      right: 0;
+      top: 60px;
+      width: var(--sidebar-r);
+      height: calc(100vh - 60px);
+      padding: 24px 16px;
+      overflow-y: auto;
+      background: var(--cream);
+      border-left: var(--border);
+      z-index: 50;
+      scrollbar-width: thin;
+      scrollbar-color: var(--sage-lt) transparent;
+    }
+    .widget {
+      background: var(--white);
+      border-radius: var(--r-card);
+      border: var(--border);
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-card);
+    }
+    .widget h3 { font-size: 0.9rem; font-weight: 900; color: var(--sage-dk); margin-bottom: 14px; letter-spacing: -0.2px; }
+    .trend-item { padding: 10px 0; border-bottom: var(--border-thin); cursor: pointer; }
+    .trend-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .trend-category { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
+    .trend-tag { font-size: 0.9rem; font-weight: 800; color: var(--text); transition: color var(--t-ui); }
+    .trend-tag:hover { color: var(--sage-dk); }
+    .trend-count { font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-top: 2px; }
+    .suggest-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+    .suggest-item:not(:last-child) { border-bottom: var(--border-thin); }
+    .suggest-avatar {
+      width: 38px; height: 38px; border-radius: var(--r-pill);
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.82rem; border: var(--border);
+    }
+    .suggest-info { flex: 1; min-width: 0; }
+    .suggest-name { font-size: 0.88rem; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .suggest-handle { font-size: 0.78rem; font-weight: 500; color: var(--muted); }
+    .btn-follow {
+      padding: 5px 14px; border: 1.5px solid var(--sage-dk);
+      border-radius: var(--r-pill); background: transparent; color: var(--sage-dk);
+      font-size: 0.8rem; font-weight: 800; cursor: pointer;
+      transition: background var(--t-ui), color var(--t-ui); flex-shrink: 0;
+    }
+    .btn-follow:hover { background: var(--sage-dk); color: var(--cream); }
+    .widget-footer { margin-top: 12px; font-size: 0.8rem; font-weight: 700; color: var(--sage-md); cursor: pointer; transition: color var(--t-ui); }
+    .widget-footer:hover { color: var(--sage-dk); }
+    .mini-widget {
+      background: linear-gradient(135deg, var(--sage-dk) 0%, var(--sage-xdk) 100%);
+      border-radius: var(--r-card); padding: 18px; margin-bottom: 16px;
+      color: var(--cream); position: relative; overflow: hidden; box-shadow: var(--shadow-btn);
+    }
+    .mini-widget::after { content: '🌿'; position: absolute; right: -8px; bottom: -10px; font-size: 5rem; opacity: 0.12; pointer-events: none; }
+    .mini-widget h4 { font-size: 0.78rem; font-weight: 700; opacity: 0.8; }
+    .mini-widget .stat { font-size: 1.9rem; font-weight: 900; margin: 4px 0; letter-spacing: -1px; }
+    .mini-widget p { font-size: 0.8rem; font-weight: 500; opacity: 0.75; }
+    .footer-links { font-size: 0.72rem; font-weight: 500; color: var(--faint); line-height: 2; }
+    .footer-links a { color: var(--faint); text-decoration: none; margin-right: 8px; }
+    .footer-links a:hover { color: var(--sage-dk); }
+
+    /* ── MESSAGES MAIN ── */
+    .messages-main {
+      display: flex;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+      border-left: var(--border);
+      border-right: var(--border);
+    }
+
+    /* Conversation panel (left) */
+    .convo-panel {
+      width: 300px;
+      flex-shrink: 0;
+      border-right: var(--border);
+      display: flex;
+      flex-direction: column;
+      background: var(--white);
+    }
+    .convo-panel-header {
+      padding: 18px 16px 12px;
+      border-bottom: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .convo-panel-header h2 {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--sage-dk);
+      letter-spacing: -0.3px;
+    }
+    .convo-new-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--r-pill);
+      border: none;
+      background: var(--cream);
+      color: var(--sage-dk);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--t-ui);
+    }
+    .convo-new-btn:hover { background: var(--sage-lt); }
+
+    .convo-search-wrap {
+      padding: 10px 12px;
+      border-bottom: var(--border);
+    }
+    .convo-search-inner {
+      position: relative;
+    }
+    .convo-search-inner svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--sage-md);
+      pointer-events: none;
+    }
+    .convo-search-inner input {
+      width: 100%;
+      padding: 7px 12px 7px 32px;
+      border: var(--border);
+      border-radius: var(--r-pill);
+      background: var(--cream);
+      font-size: 0.84rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--t-ui);
+    }
+    .convo-search-inner input:focus { border-color: var(--sage-md); }
+    .convo-search-inner input::placeholder { color: var(--faint); }
+
+    .convo-list {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--sage-lt) transparent;
+    }
+
+    .convo-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: var(--border-thin);
+      transition: background var(--t-ui);
+    }
+    .convo-item:hover { background: var(--cream); }
+    .convo-item.active { background: #eef2da; }
+    .convo-item.unread .convo-preview { font-weight: 700; color: var(--text); }
+
+    .convo-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--r-pill);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: var(--white);
+      position: relative;
+    }
+    .convo-avatar .online-dot {
+      position: absolute;
+      bottom: 1px;
+      right: 1px;
+      width: 10px;
+      height: 10px;
+      background: #4caf7d;
+      border-radius: var(--r-pill);
+      border: 2px solid var(--white);
+    }
+
+    .convo-info { flex: 1; min-width: 0; }
+    .convo-name-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .convo-name { font-size: 0.9rem; font-weight: 800; color: var(--text); }
+    .convo-time { font-size: 0.75rem; font-weight: 500; color: var(--muted); flex-shrink: 0; }
+    .convo-preview {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .convo-unread-badge {
+      width: 18px;
+      height: 18px;
+      border-radius: var(--r-pill);
+      background: var(--sage-dk);
+      color: var(--cream);
+      font-size: 0.68rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Chat panel (right) */
+    .chat-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--white);
+      min-width: 0;
+    }
+
+    .chat-header {
+      padding: 14px 20px;
+      border-bottom: var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+    }
+    .chat-header-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--r-pill);
+      background: var(--sage-md);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.88rem;
+      flex-shrink: 0;
+    }
+    .chat-header-info { flex: 1; }
+    .chat-header-name { font-size: 0.95rem; font-weight: 900; color: var(--text); }
+    .chat-header-status { font-size: 0.78rem; font-weight: 500; color: #4caf7d; }
+    .chat-header-actions { display: flex; gap: 6px; }
+    .chat-action-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--r-pill);
+      border: none;
+      background: var(--cream);
+      color: var(--sage-dk);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--t-ui);
+    }
+    .chat-action-btn:hover { background: var(--sage-lt); }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--sage-lt) transparent;
+      background: var(--cream);
+    }
+
+    .chat-msg {
+      display: flex;
+      gap: 8px;
+      max-width: 72%;
+    }
+    .chat-msg.sent {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+    .chat-msg.received { align-self: flex-start; }
+
+    .chat-msg-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--r-pill);
+      background: var(--sage-md);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+      align-self: flex-end;
+    }
+
+    .chat-bubble-wrap { display: flex; flex-direction: column; gap: 3px; }
+    .chat-msg.sent .chat-bubble-wrap { align-items: flex-end; }
+
+    .chat-bubble {
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      line-height: 1.5;
+      max-width: 100%;
+    }
+    .chat-msg.received .chat-bubble {
+      background: var(--white);
+      color: var(--text);
+      border: var(--border-thin);
+      border-bottom-left-radius: 4px;
+    }
+    .chat-msg.sent .chat-bubble {
+      background: var(--sage-dk);
+      color: var(--cream);
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg-time {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--faint);
+      padding: 0 4px;
+    }
+
+    .chat-date-divider {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .chat-date-divider::before,
+    .chat-date-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--sage-lt);
+    }
+
+    /* Compose */
+    .chat-compose {
+      padding: 12px 16px;
+      border-top: var(--border);
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      background: var(--white);
+    }
+    .chat-compose-input {
+      flex: 1;
+      border: var(--border);
+      border-radius: 20px;
+      padding: 10px 16px;
+      font-size: 0.88rem;
+      color: var(--text);
+      background: var(--cream);
+      outline: none;
+      resize: none;
+      max-height: 120px;
+      line-height: 1.5;
+      transition: border-color var(--t-ui);
+    }
+    .chat-compose-input:focus { border-color: var(--sage-md); }
+    .chat-compose-input::placeholder { color: var(--faint); }
+    .chat-compose-actions { display: flex; align-items: center; gap: 4px; }
+    .chat-compose-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--r-pill);
+      border: none;
+      background: transparent;
+      color: var(--sage-dk);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--t-ui);
+    }
+    .chat-compose-icon:hover { background: var(--sage-lt); }
+    .chat-send-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--r-pill);
+      border: none;
+      background: var(--sage-dk);
+      color: var(--cream);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--t-ui), transform var(--t-ui);
+      box-shadow: var(--shadow-btn);
+      flex-shrink: 0;
+    }
+    .chat-send-btn:hover { background: var(--sage-xdk); transform: translateY(-1px); }
+    .chat-send-btn:active { transform: translateY(0); }
+
+    /* Empty state when no chat selected */
+    .chat-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: var(--cream);
+      color: var(--muted);
+    }
+    .chat-empty-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--r-pill);
+      background: var(--sage-lt);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--sage-dk);
+    }
+    .chat-empty h3 { font-size: 1rem; font-weight: 800; color: var(--sage-dk); }
+    .chat-empty p { font-size: 0.85rem; font-weight: 500; }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 900px) {
+      .layout { margin-left: var(--sidebar-col); margin-right: 0; }
+      .sidebar-right { display: none; }
+      .sidebar-left { width: var(--sidebar-col); }
+      .sidebar-left .nav-item span,
+      .sidebar-left .sidebar-section h4,
+      .sidebar-left .btn-post span,
+      .sidebar-left .toggle-label { opacity: 0; max-width: 0; overflow: hidden; }
+      .sidebar-left .nav-item { justify-content: center; padding: 11px; }
+      .sidebar-left .btn-post { border-radius: var(--r-pill); padding: 12px; }
+      .sidebar-left .item-count { display: none; }
+      .sidebar-left .sidebar-toggle { justify-content: center; }
+      .convo-panel { width: 260px; }
+    }
+    @@media (max-width: 600px) {
+      .layout { margin-left: 0; }
+      .sidebar-left { display: none; }
+      .convo-panel { width: 220px; }
+    }
+  </style>
+</head>
+<body>
+
+  @await Html.PartialAsync("_Navbar")
+
+  <div class="layout" id="mainLayout">
+
+    @await Html.PartialAsync("_SidebarLeft")
+
+    <main class="messages-main">
+
+      <!-- Conversation list panel -->
+      <div class="convo-panel">
+        <div class="convo-panel-header">
+          <h2>Messages</h2>
+          <button class="convo-new-btn" title="New message">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="convo-search-wrap">
+          <div class="convo-search-inner">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" placeholder="Search messages…" />
+          </div>
+        </div>
+        <div class="convo-list">
+
+          <!-- Convo 1 — active + unread -->
+          <div class="convo-item active unread" id="convo-maya">
+            <div class="convo-avatar" style="background:var(--sage-md)">
+              ML
+              <span class="online-dot"></span>
+            </div>
+            <div class="convo-info">
+              <div class="convo-name-row">
+                <span class="convo-name">Maya Lin</span>
+                <span class="convo-time">2m</span>
+              </div>
+              <div class="convo-preview">Hey! Did you see that new feature?</div>
+            </div>
+            <div class="convo-unread-badge">3</div>
+          </div>
+
+          <!-- Convo 2 -->
+          <div class="convo-item" id="convo-jake">
+            <div class="convo-avatar" style="background:var(--sage-dk)">JR</div>
+            <div class="convo-info">
+              <div class="convo-name-row">
+                <span class="convo-name">Jake Rivera</span>
+                <span class="convo-time">15m</span>
+              </div>
+              <div class="convo-preview">Thanks for the follow back!</div>
+            </div>
+          </div>
+
+          <!-- Convo 3 — unread -->
+          <div class="convo-item unread" id="convo-sara">
+            <div class="convo-avatar" style="background:var(--sage-mid2)">SC</div>
+            <div class="convo-info">
+              <div class="convo-name-row">
+                <span class="convo-name">Sara Chen</span>
+                <span class="convo-time">1h</span>
+              </div>
+              <div class="convo-preview">Can we collab on something? 🌱</div>
+            </div>
+            <div class="convo-unread-badge">1</div>
+          </div>
+
+          <!-- Convo 4 -->
+          <div class="convo-item" id="convo-tom">
+            <div class="convo-avatar" style="background:var(--muted)">TN</div>
+            <div class="convo-info">
+              <div class="convo-name-row">
+                <span class="convo-name">Tom Nguyen</span>
+                <span class="convo-time">3h</span>
+              </div>
+              <div class="convo-preview">Loved your latest post 🌱</div>
+            </div>
+          </div>
+
+          <!-- Convo 5 -->
+          <div class="convo-item" id="convo-amy">
+            <div class="convo-avatar" style="background:var(--warm-tan);color:var(--text)">AW</div>
+            <div class="convo-info">
+              <div class="convo-name-row">
+                <span class="convo-name">Amy Walsh</span>
+                <span class="convo-time">Yesterday</span>
+              </div>
+              <div class="convo-preview">See you at the meetup!</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Active chat panel -->
+      <div class="chat-panel">
+
+        <div class="chat-header">
+          <div class="chat-header-avatar">ML</div>
+          <div class="chat-header-info">
+            <div class="chat-header-name">Maya Lin</div>
+            <div class="chat-header-status">Online</div>
+          </div>
+          <div class="chat-header-actions">
+            <button class="chat-action-btn" title="Search in conversation">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+            </button>
+            <button class="chat-action-btn" title="More options">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-messages">
+
+          <div class="chat-date-divider">Today</div>
+
+          <!-- Received -->
+          <div class="chat-msg received">
+            <div class="chat-msg-avatar">ML</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-bubble">Hey! Did you see that new feature Sprout launched? 🌿</div>
+              <div class="chat-msg-time">10:32 AM</div>
+            </div>
+          </div>
+
+          <!-- Sent -->
+          <div class="chat-msg sent">
+            <div class="chat-bubble-wrap">
+              <div class="chat-bubble">No, what is it? 👀</div>
+              <div class="chat-msg-time">10:33 AM</div>
+            </div>
+          </div>
+
+          <!-- Received -->
+          <div class="chat-msg received">
+            <div class="chat-msg-avatar">ML</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-bubble">They added story circles! You can post 24-hour updates to your specific circles now</div>
+              <div class="chat-msg-time">10:34 AM</div>
+            </div>
+          </div>
+
+          <!-- Sent -->
+          <div class="chat-msg sent">
+            <div class="chat-bubble-wrap">
+              <div class="chat-bubble">Oh that's really cool! I already noticed the new stories bar on the feed 🌱</div>
+              <div class="chat-msg-time">10:35 AM</div>
+            </div>
+          </div>
+
+          <!-- Received -->
+          <div class="chat-msg received">
+            <div class="chat-msg-avatar">ML</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-bubble">Yes! I posted my first garden update this morning</div>
+              <div class="chat-msg-time">10:36 AM</div>
+            </div>
+          </div>
+
+          <!-- Sent -->
+          <div class="chat-msg sent">
+            <div class="chat-bubble-wrap">
+              <div class="chat-bubble">I saw it! Loved the monstera pics 💚</div>
+              <div class="chat-msg-time">10:38 AM</div>
+            </div>
+          </div>
+
+          <!-- Received -->
+          <div class="chat-msg received">
+            <div class="chat-msg-avatar">ML</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-bubble">Thank you 😊 Also loved your last sprout about the herb garden! The photos were gorgeous</div>
+              <div class="chat-msg-time">10:40 AM</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="chat-compose">
+          <div class="chat-compose-actions">
+            <button class="chat-compose-icon" title="Attach image">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </button>
+            <button class="chat-compose-icon" title="Emoji">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+              </svg>
+            </button>
+          </div>
+          <textarea class="chat-compose-input" placeholder="Send a message…" rows="1"></textarea>
+          <button class="chat-send-btn" title="Send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+
+    @await Html.PartialAsync("_SidebarRight")
+
+  </div>
+
+  <script>
+    // Sidebar toggle
+    const sidebar     = document.getElementById('sidebar');
+    const layout      = document.getElementById('mainLayout');
+    const toggleBtn   = document.getElementById('sidebarToggle');
+    const toggleIcon  = document.getElementById('toggleIcon');
+    const toggleLabel = toggleBtn.querySelector('.toggle-label');
+
+    let collapsed = false;
+
+    toggleBtn.addEventListener('click', () => {
+      collapsed = !collapsed;
+      sidebar.classList.toggle('collapsed', collapsed);
+      layout.classList.toggle('collapsed', collapsed);
+
+      if (collapsed) {
+        toggleIcon.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
+        toggleLabel.textContent = 'Expand';
+        toggleBtn.title = 'Expand sidebar';
+      } else {
+        toggleIcon.innerHTML = '<polyline points="15 18 9 12 15 6"/>';
+        toggleLabel.textContent = 'Collapse';
+        toggleBtn.title = 'Collapse sidebar';
+      }
+    });
+
+    // Conversation switching — highlight selected, update chat header
+    const convos = document.querySelectorAll('.convo-item');
+    convos.forEach(c => {
+      c.addEventListener('click', () => {
+        convos.forEach(x => x.classList.remove('active'));
+        c.classList.add('active');
+        c.classList.remove('unread');
+        const badge = c.querySelector('.convo-unread-badge');
+        if (badge) badge.remove();
+      });
+    });
+
+    // Auto-resize compose textarea
+    const composeInput = document.querySelector('.chat-compose-input');
+    composeInput.addEventListener('input', () => {
+      composeInput.style.height = 'auto';
+      composeInput.style.height = Math.min(composeInput.scrollHeight, 120) + 'px';
+    });
+
+    // Scroll chat to bottom on load
+    const chatMessages = document.querySelector('.chat-messages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  </script>
+
+</body>
+</html>

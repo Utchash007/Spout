@@ -1,0 +1,211 @@
+<style>
+  .nb-drop-wrap {
+    position: relative;
+  }
+
+  .nb-dropdown {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 300px;
+    background: #A1BC98;
+    border-radius: 14px;
+    padding: 10px;
+    z-index: 999;
+    box-shadow: 0 8px 24px rgba(44, 48, 40, 0.18);
+  }
+
+  .nb-dropdown.open {
+    display: flex;
+  }
+
+  .nb-drop-header {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #ffffff;
+    padding: 2px 4px 6px 4px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .nb-drop-item {
+    background: #F1F3E0;
+    color: #778873;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .nb-drop-item:hover {
+    background: #e6e9d0;
+  }
+
+  .nb-drop-item .nb-item-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #778873;
+  }
+
+  .nb-drop-item .nb-item-sub {
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: #778873;
+    opacity: 0.8;
+  }
+
+  .nb-drop-footer {
+    text-align: center;
+    font-size: 0.76rem;
+    color: #ffffff;
+    padding: 4px 0 2px;
+    cursor: pointer;
+    font-weight: 600;
+    opacity: 0.85;
+  }
+
+  .nb-drop-footer:hover { opacity: 1; }
+</style>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a asp-controller="Home" asp-action="Index" class="nav-logo">
+    <svg width="28" height="28" viewBox="0 0 44 44" fill="none">
+      <path d="M22 36 C22 36 10 26 10 18 C10 11.4 15.4 6 22 6 C28.6 6 34 11.4 34 18 C34 26 22 36 22 36Z" fill="#D2DCB6"/>
+      <path d="M22 30 C22 30 14 22 14 17 C14 12.6 17.6 9 22 9 C26.4 9 30 12.6 30 17 C30 22 22 30 22 30Z" fill="#A1BC98"/>
+      <path d="M22 10 L22 36" stroke="#778873" stroke-width="1.5" stroke-dasharray="3 3"/>
+    </svg>
+    <span>Sprout</span>
+  </a>
+
+  <div class="nav-search">
+    <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input type="text" placeholder="Search Sprout…" />
+  </div>
+
+  <div class="nav-actions">
+
+    <!-- Notifications -->
+    <div class="nb-drop-wrap">
+      <button class="nav-icon-btn" id="nb-notif-btn" title="Notifications">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="badge"></span>
+      </button>
+      <div class="nb-dropdown" id="nb-notif-drop">
+        <div class="nb-drop-header">Notifications</div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Maya Lin liked your Sprout</span>
+          <span class="nb-item-sub">2 minutes ago</span>
+        </div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Jake Rivera started following you</span>
+          <span class="nb-item-sub">15 minutes ago</span>
+        </div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Sara Chen reposted your Sprout</span>
+          <span class="nb-item-sub">1 hour ago</span>
+        </div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Tom Nguyen mentioned you</span>
+          <span class="nb-item-sub">3 hours ago</span>
+        </div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Amy Walsh liked your reply</span>
+          <span class="nb-item-sub">Yesterday</span>
+        </div>
+        <div class="nb-drop-footer">See all notifications</div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="nb-drop-wrap">
+      <button class="nav-icon-btn" id="nb-msg-btn" title="Messages">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span class="badge"></span>
+      </button>
+      <div class="nb-dropdown" id="nb-msg-drop">
+        <div class="nb-drop-header">Messages</div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Maya Lin</span>
+          <span class="nb-item-sub">Hey! Did you see that new feature?</span>
+        </div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Jake Rivera</span>
+          <span class="nb-item-sub">Thanks for the follow back!</span>
+        </div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Sara Chen</span>
+          <span class="nb-item-sub">Can we collab on something?</span>
+        </div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Tom Nguyen</span>
+          <span class="nb-item-sub">Loved your latest post 🌱</span>
+        </div>
+        <div class="nb-drop-item">
+          <span class="nb-item-title">Amy Walsh</span>
+          <span class="nb-item-sub">See you at the meetup!</span>
+        </div>
+        <div class="nb-drop-footer">See all messages</div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="nb-drop-wrap">
+      <button class="nav-avatar" id="nb-profile-btn" title="Profile">
+        @(User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "?")
+      </button>
+      <div class="nb-dropdown" id="nb-profile-drop" style="width:200px;">
+        <div class="nb-drop-header">My Account</div>
+        <a asp-controller="Profile" asp-action="Index" class="nb-drop-item" style="text-decoration:none;">
+          <span class="nb-item-title">View Profile</span>
+        </a>
+        <form asp-controller="Login" asp-action="Logout" method="post" style="margin:0;">
+          <button type="submit" class="nb-drop-item" style="width:100%;border:none;background:none;padding:10px 14px;text-align:left;cursor:pointer;border-radius:8px;color:#e07a5f;">
+            <span class="nb-item-title" style="color:#e07a5f;">Log Out</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<script>
+  (function () {
+    const notifBtn    = document.getElementById('nb-notif-btn');
+    const notifDrop   = document.getElementById('nb-notif-drop');
+    const msgBtn      = document.getElementById('nb-msg-btn');
+    const msgDrop     = document.getElementById('nb-msg-drop');
+    const profileBtn  = document.getElementById('nb-profile-btn');
+    const profileDrop = document.getElementById('nb-profile-drop');
+
+    const allDrops = [notifDrop, msgDrop, profileDrop];
+
+    function toggle(drop) {
+      const isOpen = drop.classList.contains('open');
+      allDrops.forEach(d => d.classList.remove('open'));
+      if (!isOpen) drop.classList.add('open');
+    }
+
+    notifBtn.addEventListener('click',   function (e) { e.stopPropagation(); toggle(notifDrop); });
+    msgBtn.addEventListener('click',     function (e) { e.stopPropagation(); toggle(msgDrop); });
+    profileBtn.addEventListener('click', function (e) { e.stopPropagation(); toggle(profileDrop); });
+
+    document.addEventListener('click', function () {
+      allDrops.forEach(d => d.classList.remove('open'));
+    });
+
+    allDrops.forEach(d => d.addEventListener('click', function (e) { e.stopPropagation(); }));
+  })();
+</script>

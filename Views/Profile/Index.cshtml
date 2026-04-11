@@ -1,0 +1,831 @@
+@{
+    ViewData["Title"] = "Profile";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sprout — Emma Green</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="~/css/navbar.css" asp-append-version="true" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ── BASE ── */
+    body {
+      background: var(--cream);
+      font-family: 'Nunito', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* All interactive elements inherit the font */
+    button, input, textarea, select {
+      font-family: inherit;
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px 48px;
+    }
+
+    /* ── COVER ── */
+    .cover {
+      width: 100%;
+      height: 220px;
+      border-radius: 0 0 20px 20px;
+      background: linear-gradient(135deg, var(--sage-dk) 0%, var(--sage-md) 40%, var(--sage-lt) 80%, #e5ecc8 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .cover-pattern {
+      position: absolute;
+      inset: 0;
+      opacity: 0.15;
+      background-image:
+        radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px),
+        radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px),
+        radial-gradient(circle at 60% 80%, #fff 1px, transparent 1px);
+      background-size: 60px 60px, 80px 80px, 40px 40px;
+    }
+    .cover-emoji {
+      position: absolute;
+      right: 40px; bottom: 20px;
+      font-size: 6rem;
+      opacity: 0.2;
+    }
+    .cover-edit-btn {
+      position: absolute;
+      top: 16px; right: 16px;
+      padding: 7px 16px;
+      background: rgba(255,255,255,0.2);
+      border: 1.5px solid rgba(255,255,255,0.4);
+      border-radius: 50px;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s;
+    }
+    .cover-edit-btn:hover { background: rgba(255,255,255,0.32); }
+
+    /* ── PROFILE HEADER ── */
+    .profile-header {
+      background: var(--white);
+      border: 1.5px solid var(--sage-lt);
+      border-top: none;
+      border-radius: 0 0 20px 20px;
+      padding: 0 28px 24px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-top: -48px;
+    }
+    .avatar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--sage-dk), var(--sage-md));
+      border: 4px solid var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cream);
+      font-size: 2.2rem;
+      font-weight: 800;
+      box-shadow: 0 4px 16px rgba(119,136,115,0.25);
+    }
+    .avatar-badge {
+      position: absolute;
+      bottom: 4px; right: 4px;
+      width: 24px; height: 24px;
+      background: var(--sage-md);
+      border-radius: 50%;
+      border: 3px solid var(--white);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem;
+    }
+
+    .profile-actions-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-top: 0;
+    }
+
+    .profile-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .btn-edit-profile {
+      padding: 9px 22px;
+      border: 1.5px solid var(--sage-dk);
+      border-radius: 50px;
+      background: transparent;
+      color: var(--sage-dk);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-edit-profile:hover {
+      background: var(--sage-dk);
+      color: var(--cream);
+    }
+    .btn-share {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 1.5px solid var(--sage-lt);
+      background: var(--cream);
+      color: var(--sage-dk);
+      cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-share:hover { background: var(--sage-lt); border-color: var(--sage-md); }
+
+    .profile-info {
+      margin-top: 16px;
+    }
+    .profile-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px; height: 22px;
+      background: var(--sage-dk);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 0.75rem;
+    }
+    .profile-handle {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .profile-bio {
+      font-size: 0.93rem;
+      line-height: 1.65;
+      color: var(--text);
+      margin-top: 10px;
+      max-width: 520px;
+    }
+    .bio-hashtag { color: var(--sage-dk); font-weight: 600; }
+
+    .profile-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 12px;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .meta-item svg { color: var(--sage-md); }
+
+    .profile-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1.5px solid var(--cream);
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+    .stat-item:hover .stat-label { color: var(--sage-dk); }
+    .stat-number {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 1px;
+      transition: color 0.2s;
+    }
+
+    /* ── CONTENT TABS ── */
+    .content-area {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .tabs {
+      background: var(--white);
+      border: 1.5px solid var(--sage-lt);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .tabs-nav {
+      display: flex;
+      border-bottom: 1.5px solid var(--sage-lt);
+      padding: 0 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 14px 8px;
+      border: none;
+      background: transparent;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2.5px solid transparent;
+      margin-bottom: -1.5px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab-btn.active {
+      color: var(--sage-dk);
+      border-bottom-color: var(--sage-dk);
+    }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* Post list inside tabs */
+    .post-item {
+      padding: 18px 20px;
+      border-bottom: 1.5px solid var(--cream);
+      transition: background 0.15s;
+    }
+    .post-item:last-child { border-bottom: none; }
+    .post-item:hover { background: rgba(210,220,182,0.1); }
+
+    .post-item-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .mini-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg,var(--sage-dk),var(--sage-md));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .post-item-meta { flex: 1; }
+    .post-item-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .post-item-time {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .post-item-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .post-item-hashtag { color: var(--sage-dk); font-weight: 600; }
+
+    .post-item-img {
+      width: 100%;
+      height: 180px;
+      border-radius: 12px;
+      background: linear-gradient(135deg,var(--sage-lt),var(--sage-md));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .post-item-actions {
+      display: flex;
+      gap: 0;
+    }
+    .mini-action {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px 5px 8px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.82rem;
+      border-radius: 50px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .mini-action:hover { background: var(--cream); }
+    .mini-action.liked { color: #e07a5f; }
+
+    /* Media grid */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      padding: 3px;
+    }
+    .media-cell {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      background: linear-gradient(135deg,var(--sage-lt),var(--sage-md));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .media-cell:hover { opacity: 0.85; }
+    .media-cell:nth-child(2) { background: linear-gradient(135deg,var(--sage-dk),var(--sage-md)); }
+    .media-cell:nth-child(3) { background: linear-gradient(135deg,#c8d8a8,#a1bc98); }
+    .media-cell:nth-child(4) { background: linear-gradient(135deg,#8fb08a,#d2dcb6); }
+    .media-cell:nth-child(5) { background: linear-gradient(135deg,var(--sage-md),var(--sage-lt)); }
+    .media-cell:nth-child(6) { background: linear-gradient(135deg,#6b7a67,var(--sage-md)); }
+    .media-cell:nth-child(7) { background: linear-gradient(135deg,var(--sage-lt),#e5ecc8); }
+    .media-cell:nth-child(8) { background: linear-gradient(135deg,#778873,#a1bc98); }
+    .media-cell:nth-child(9) { background: linear-gradient(135deg,var(--sage-md),var(--sage-dk)); }
+    .media-count-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 1.2rem; font-weight: 800;
+    }
+
+    /* ── RIGHT COLUMN ── */
+    .profile-sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+    .widget {
+      background: var(--white);
+      border: 1.5px solid var(--sage-lt);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .widget h3 {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--sage-dk);
+      margin-bottom: 14px;
+    }
+
+    /* Highlights */
+    .highlights {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .highlights::-webkit-scrollbar { display: none; }
+    .highlight {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .highlight-ring {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg,var(--sage-dk),var(--sage-md));
+      padding: 2.5px;
+    }
+    .highlight-inner {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      background: var(--cream);
+      border: 2.5px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+    }
+    .highlight-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* Mutual followers */
+    .mutual-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--cream);
+    }
+    .mutual-item:last-child { border-bottom: none; }
+    .mutual-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.82rem;
+      border: 1.5px solid var(--sage-lt);
+    }
+    .mutual-info { flex: 1; min-width: 0; }
+    .mutual-name {
+      font-size: 0.88rem; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .mutual-handle { font-size: 0.76rem; color: var(--muted); }
+    .btn-sm-follow {
+      padding: 4px 12px;
+      border: 1.5px solid var(--sage-dk);
+      border-radius: 50px;
+      background: transparent;
+      color: var(--sage-dk);
+      font-size: 0.77rem;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-sm-follow:hover { background: var(--sage-dk); color: var(--cream); }
+
+    /* Interests */
+    .interests {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .interest-tag {
+      padding: 5px 14px;
+      border-radius: 50px;
+      background: var(--cream);
+      border: 1.5px solid var(--sage-lt);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--sage-dk);
+    }
+
+    @@media (max-width: 780px) {
+      .content-area { grid-template-columns: 1fr; }
+      .profile-sidebar { display: none; }
+    }
+    @@media (max-width: 500px) {
+      .cover { height: 160px; }
+      .avatar { width: 72px; height: 72px; font-size: 1.6rem; }
+      .profile-stats { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <partial name="_Navbar" />
+
+  <!-- Cover -->
+  <div class="cover">
+    <div class="cover-pattern"></div>
+    <div class="cover-emoji">🌿</div>
+    <button class="cover-edit-btn">Edit cover</button>
+  </div>
+
+  <!-- Main layout -->
+  <div class="layout">
+
+    <!-- Profile header -->
+    <div class="profile-header">
+      <div class="profile-actions-row">
+        <div class="avatar-wrapper">
+          <div class="avatar">EG</div>
+          <div class="avatar-badge">🌱</div>
+        </div>
+        <div class="profile-buttons">
+          <button class="btn-edit-profile">Edit Profile</button>
+          <button class="btn-share" title="Share profile">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="profile-info">
+        <div class="profile-name">
+          Emma Green
+          <span class="verified-badge" title="Verified">✓</span>
+        </div>
+        <div class="profile-handle">@@emmagreen</div>
+        <p class="profile-bio">
+          Nature enthusiast 🌿 | Amateur botanist | Sustainable living advocate |
+          Turning my balcony into a jungle, one plant at a time 🪴
+          <span class="bio-hashtag">#PlantMom</span> <span class="bio-hashtag">#GreenLiving</span>
+        </p>
+
+        <div class="profile-meta">
+          <span class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            Portland, Oregon
+          </span>
+          <span class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            emmagreen.garden
+          </span>
+          <span class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            Joined March 2022
+          </span>
+        </div>
+
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-number">486</span>
+            <span class="stat-label">Sprouts</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">2,841</span>
+            <span class="stat-label">Followers</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">312</span>
+            <span class="stat-label">Following</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">18.4K</span>
+            <span class="stat-label">Likes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <div class="content-area">
+
+      <!-- Tabs + posts -->
+      <div class="tabs">
+        <div class="tabs-nav">
+          <button class="tab-btn active">Sprouts</button>
+          <button class="tab-btn">Replies</button>
+          <button class="tab-btn">Media</button>
+          <button class="tab-btn">Likes</button>
+          <button class="tab-btn">Bookmarks</button>
+        </div>
+
+        <!-- Posts tab content (shown by default) -->
+        <div id="sprouts-tab">
+
+          <div class="post-item">
+            <div class="post-item-header">
+              <div class="mini-avatar">EG</div>
+              <div class="post-item-meta">
+                <div class="post-item-name">Emma Green</div>
+                <div class="post-item-time">2h ago</div>
+              </div>
+            </div>
+            <p class="post-item-text">
+              Just planted my first herb garden this spring 🌱 Started with basil, rosemary, and thyme. There's something so grounding about working with soil and watching things grow. <span class="post-item-hashtag">#GardenLife</span> <span class="post-item-hashtag">#NatureLover</span>
+            </p>
+            <div class="post-item-img">🌿</div>
+            <div class="post-item-actions">
+              <button class="mini-action liked">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                248
+              </button>
+              <button class="mini-action">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                34
+              </button>
+              <button class="mini-action">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                </svg>
+                89
+              </button>
+            </div>
+          </div>
+
+          <div class="post-item">
+            <div class="post-item-header">
+              <div class="mini-avatar">EG</div>
+              <div class="post-item-meta">
+                <div class="post-item-name">Emma Green</div>
+                <div class="post-item-time">Yesterday</div>
+              </div>
+            </div>
+            <p class="post-item-text">
+              Switched to a fully plastic-free bathroom this month. It was easier than I thought and my skin actually prefers the natural alternatives. If you're curious where to start — just DM me 🌊 <span class="post-item-hashtag">#ZeroWaste</span> <span class="post-item-hashtag">#SustainableLiving</span>
+            </p>
+            <div class="post-item-actions">
+              <button class="mini-action">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                182
+              </button>
+              <button class="mini-action">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                52
+              </button>
+              <button class="mini-action">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                </svg>
+                71
+              </button>
+            </div>
+          </div>
+
+          <div class="post-item">
+            <div class="post-item-header">
+              <div class="mini-avatar">EG</div>
+              <div class="post-item-meta">
+                <div class="post-item-name">Emma Green</div>
+                <div class="post-item-time">3 days ago</div>
+              </div>
+            </div>
+            <p class="post-item-text">
+              Morning routine check: woke up at 6am, watered my monstera, made pour-over coffee, sat by the window for 20 min with no phone. Highly recommend this for your mental health 🌅 <span class="post-item-hashtag">#MorningRoutine</span> <span class="post-item-hashtag">#Mindfulness</span>
+            </p>
+            <div class="post-item-img" style="background:linear-gradient(135deg,#d2dcb6,#e5ecc8);">☕</div>
+            <div class="post-item-actions">
+              <button class="mini-action liked">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                407
+              </button>
+              <button class="mini-action">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                63
+              </button>
+              <button class="mini-action">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                </svg>
+                128
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Tab switching script (pure CSS trick via pointer events) -->
+        <!-- Media grid shown when Media tab is clicked -->
+        <div id="media-tab" style="display:none;">
+          <div class="media-grid">
+            <div class="media-cell">🌿</div>
+            <div class="media-cell">🪴</div>
+            <div class="media-cell">🌱</div>
+            <div class="media-cell">☕</div>
+            <div class="media-cell">🌸</div>
+            <div class="media-cell">🍃</div>
+            <div class="media-cell">🌾</div>
+            <div class="media-cell">🌻</div>
+            <div class="media-cell" style="position:relative;">
+              🍀
+              <div class="media-count-overlay">+24</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right sidebar -->
+      <div class="profile-sidebar">
+
+        <!-- Highlights -->
+        <div class="widget">
+          <h3>Story Highlights</h3>
+          <div class="highlights">
+            <div class="highlight">
+              <div class="highlight-ring">
+                <div class="highlight-inner">🌿</div>
+              </div>
+              <div class="highlight-label">Garden</div>
+            </div>
+            <div class="highlight">
+              <div class="highlight-ring">
+                <div class="highlight-inner">🚶</div>
+              </div>
+              <div class="highlight-label">Hikes</div>
+            </div>
+            <div class="highlight">
+              <div class="highlight-ring">
+                <div class="highlight-inner">🍳</div>
+              </div>
+              <div class="highlight-label">Recipes</div>
+            </div>
+            <div class="highlight">
+              <div class="highlight-ring">
+                <div class="highlight-inner">✈️</div>
+              </div>
+              <div class="highlight-label">Travel</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mutual connections -->
+        <div class="widget">
+          <h3>Suggested Connections</h3>
+          <div class="mutual-item">
+            <div class="mutual-avatar" style="background:#c4d4b0;color:#4a5545">ML</div>
+            <div class="mutual-info">
+              <div class="mutual-name">Maya Lin</div>
+              <div class="mutual-handle">@@mayalin</div>
+            </div>
+            <button class="btn-sm-follow">Follow</button>
+          </div>
+          <div class="mutual-item">
+            <div class="mutual-avatar" style="background:#8fb08a;color:#fff">JR</div>
+            <div class="mutual-info">
+              <div class="mutual-name">Jake Rivera</div>
+              <div class="mutual-handle">@@jakerivera</div>
+            </div>
+            <button class="btn-sm-follow">Follow</button>
+          </div>
+          <div class="mutual-item">
+            <div class="mutual-avatar" style="background:#778873;color:#f1f3e0">TN</div>
+            <div class="mutual-info">
+              <div class="mutual-name">Tom Nguyen</div>
+              <div class="mutual-handle">@@tomnguyen</div>
+            </div>
+            <button class="btn-sm-follow">Follow</button>
+          </div>
+        </div>
+
+        <!-- Interests -->
+        <div class="widget">
+          <h3>Interests</h3>
+          <div class="interests">
+            <span class="interest-tag">🌿 Botany</span>
+            <span class="interest-tag">♻️ Sustainability</span>
+            <span class="interest-tag">🏔️ Hiking</span>
+            <span class="interest-tag">☕ Coffee</span>
+            <span class="interest-tag">📷 Photography</span>
+            <span class="interest-tag">🍳 Cooking</span>
+            <span class="interest-tag">🌱 Gardening</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple tab switching
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const sprouts = document.getElementById('sprouts-tab');
+        const media = document.getElementById('media-tab');
+        if (btn.textContent.trim() === 'Media') {
+          sprouts.style.display = 'none';
+          media.style.display = 'block';
+        } else {
+          sprouts.style.display = 'block';
+          media.style.display = 'none';
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
