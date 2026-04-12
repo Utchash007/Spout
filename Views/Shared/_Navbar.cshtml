@@ -164,7 +164,8 @@
     <!-- Profile -->
     <div class="nb-drop-wrap">
       <button class="nav-avatar" id="nb-profile-btn" title="Profile">
-        @(User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "?")
+        @{ var _un = User.Identity?.Name ?? ""; }
+        @(_un.Length > 0 ? _un[0].ToString().ToUpper() : "?")
       </button>
       <div class="nb-dropdown" id="nb-profile-drop" style="width:200px;">
         <div class="nb-drop-header">My Account</div>
