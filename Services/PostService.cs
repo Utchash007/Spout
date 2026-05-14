@@ -56,22 +56,32 @@ namespace Twit.Services
 
         public async Task<IEnumerable<PostViewModel>> FetchPosts()
         {
-            return await _unitOfWork.PostRepo.GetAll()
+            var posts = await _unitOfWork.PostRepo.GetAll()
+                .Include(p => p.UserProfile)
+                    .ThenInclude(up => up.User)
                 .OrderByDescending(p => p.CreatedAt)
-                .Select(p => new PostViewModel
-                {
-                    Id = p.Id,
-                    Content = p.Content,
-                    LikesCount = p.LikesCount,
-                    RepostCount = p.RepostCount,
-                    IsRepost = p.IsRepost,
-                    CreatedAt = p.CreatedAt,
-                    AuthorName = p.UserProfile.FirstName + " " + p.UserProfile.LastName,
-                    AuthorHandle = p.UserProfile.User.UserName ?? "",
-                    AuthorInitials = (p.UserProfile.FirstName.Length > 0 ? p.UserProfile.FirstName.Substring(0, 1) : "?")
-                                   + (p.UserProfile.LastName.Length > 0 ? p.UserProfile.LastName.Substring(0, 1) : "?")
-                })
                 .ToListAsync();
+
+            return posts.Select(p =>
+            {
+                var firstName = p.UserProfile?.FirstName ?? "";
+                var lastName  = p.UserProfile?.LastName  ?? "";
+                var initials  = (firstName.Length > 0 ? firstName[0].ToString() : "?")
+                              + (lastName.Length  > 0 ? lastName[0].ToString()  : "");
+
+                return new PostViewModel
+                {
+                    Id           = p.Id,
+                    Content      = p.Content,
+                    LikesCount   = p.LikesCount,
+                    RepostCount  = p.RepostCount,
+                    IsRepost     = p.IsRepost,
+                    CreatedAt    = p.CreatedAt,
+                    AuthorName   = $"{firstName} {lastName}".Trim(),
+                    AuthorHandle = p.UserProfile?.User?.UserName ?? "",
+                    AuthorInitials = initials
+                };
+            });
         }
 
         public async Task DeletePost(string postId)

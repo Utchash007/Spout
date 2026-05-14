@@ -49,7 +49,7 @@ public class HomeController : Controller
         return initials.ToUpper();
     }
 
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> Index()
     {
         var posts = await _postService.FetchPosts();
