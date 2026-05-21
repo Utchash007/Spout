@@ -65,6 +65,7 @@ public class SignUpController : Controller
             };
 
             await _unitOfWork.UserProfileRepo.Add(profile);
+            await _unitOfWork.SaveChangesAsync();
             await transaction.CommitAsync();
 
             TempData["RegistrationSuccess"] = true;

@@ -13,5 +13,7 @@ namespace Twit.Models.ViewModels
         public string AuthorName { get; set; } = string.Empty;
         public string AuthorHandle { get; set; } = string.Empty;
         public string AuthorInitials { get; set; } = "?";
+        
+        public bool IsLikedByCurrentUser { get; set; }
     }
 }

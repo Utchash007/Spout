@@ -52,7 +52,8 @@ public class HomeController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> Index()
     {
-        var posts = await _postService.FetchPosts();
+        var profileId = await GetCurrentUserProfileId();
+        var posts = await _postService.FetchPosts(profileId);
         var model = new HomeFeedViewModel
         {
             Posts = posts,

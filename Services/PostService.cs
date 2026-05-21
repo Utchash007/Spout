@@ -23,20 +23,25 @@ namespace Twit.Services
             };
 
             await _unitOfWork.PostRepo.Add(post);
+            await _unitOfWork.SaveChangesAsync();
             return post;
         }
 
         public async Task<Post> EditPost(string postId, string content)
         {
             var post = await _unitOfWork.PostRepo.Get(postId);
+            if (post == null) return null;
+
             post.Content = content;
             await _unitOfWork.PostRepo.Update(post);
+            await _unitOfWork.SaveChangesAsync();
             return post;
         }
 
         public async Task<Post> RePost(string userProfileId, string parentPostId)
         {
             var originalPost = await _unitOfWork.PostRepo.Get(parentPostId);
+            if (originalPost == null) return null;
 
             var repost = new Post
             {
@@ -50,11 +55,12 @@ namespace Twit.Services
 
             originalPost.RepostCount++;
             await _unitOfWork.PostRepo.Update(originalPost);
-
+            
+            await _unitOfWork.SaveChangesAsync();
             return repost;
         }
 
-        public async Task<IEnumerable<PostViewModel>> FetchPosts()
+        public async Task<IEnumerable<PostViewModel>> FetchPosts(string? userProfileId = null)
         {
             var posts = await _unitOfWork.PostRepo.GetAll()
                 .Include(p => p.UserProfile)
@@ -79,7 +85,9 @@ namespace Twit.Services
                     CreatedAt    = p.CreatedAt,
                     AuthorName   = $"{firstName} {lastName}".Trim(),
                     AuthorHandle = p.UserProfile?.User?.UserName ?? "",
-                    AuthorInitials = initials
+                    AuthorInitials = initials,
+                    IsLikedByCurrentUser = userProfileId != null && 
+                        _unitOfWork.LikeRepo.GetAll().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id)
                 };
             });
         }
@@ -87,6 +95,7 @@ namespace Twit.Services
         public async Task DeletePost(string postId)
         {
             await _unitOfWork.PostRepo.Delete(postId);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

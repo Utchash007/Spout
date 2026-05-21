@@ -1,4 +1,4 @@
-using DotNetEnv;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Twit.Models;
@@ -6,13 +6,15 @@ using Twit.Repository;
 using Twit.Repository.DBContext;
 using Twit.UnitOfWork;
 using Twit.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+
 var builder = WebApplication.CreateBuilder(args);
 
-
-DotNetEnv.Env.Load();
 builder.Services.AddControllersWithViews();
 
-var connectionString = Environment.GetEnvironmentVariable("pgConn");
+// Reads from appsettings.Development.json locally, or environment variable on the server
+// Cloud: set ConnectionStrings__pgConn as an environment variable in the platform dashboard
+var connectionString = builder.Configuration.GetConnectionString("pgConn");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString)
@@ -41,6 +43,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/login";
     options.LogoutPath = "/logout";
     options.AccessDeniedPath = "/login";
+    options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
     options.ExpireTimeSpan = TimeSpan.FromDays(1);
     options.SlidingExpiration = true;
 });
@@ -60,6 +63,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders =  ForwardedHeaders.XForwardedProto
+});
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();

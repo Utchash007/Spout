@@ -141,5 +141,10 @@ public class UnitOfWork : IUnitOfWork
             return _bookmark;
         }
     }
+
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
 }
 }

@@ -26,20 +26,25 @@ namespace Twit.Services
             };
 
             await _unitOfWork.CommentRepo.Add(comment);
+            await _unitOfWork.SaveChangesAsync();
             return comment;
         }
 
         public async Task<Comment> EditComment(string commentId, string content)
         {
             var comment = await _unitOfWork.CommentRepo.Get(commentId);
+            if (comment == null) return null;
+
             comment.Content = content;
             await _unitOfWork.CommentRepo.Update(comment);
+            await _unitOfWork.SaveChangesAsync();
             return comment;
         }
 
         public async Task DeleteComment(string commentId)
         {
             await _unitOfWork.CommentRepo.Delete(commentId);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

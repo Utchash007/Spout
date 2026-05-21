@@ -17,6 +17,7 @@ namespace Twit.UnitOfWork
         IRepository<ConversationParticipant> ConvParticipantRepo { get; }
         IRepository<Message> MessageRepo { get; }
         IRepository<Bookmark> BookmarkRepo { get; }
+        Task SaveChangesAsync();
     }   
 
 }

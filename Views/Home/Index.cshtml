@@ -950,13 +950,13 @@
           </div>
           <p class="post-text">@post.Content</p>
           <div class="post-actions">
-            <form asp-action="LikePost" asp-controller="Like" method="post" style="display:inline">
+            <form asp-action="LikePost" asp-controller="Like" method="post" style="display:inline" class="like-form">
               <input type="hidden" name="postId" value="@post.Id" />
-              <button type="submit" class="post-action">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <button type="submit" class="post-action @(post.IsLikedByCurrentUser ? "liked" : "")">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="@(post.IsLikedByCurrentUser ? "currentColor" : "none")" stroke="currentColor" stroke-width="2">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
-                @post.LikesCount
+                <span class="like-count">@post.LikesCount</span>
               </button>
             </form>
             <button class="post-action">
@@ -1088,6 +1088,70 @@
         toggleIcon.innerHTML = '<polyline points="15 18 9 12 15 6"/>';
         toggleLabel.textContent = 'Collapse';
         toggleBtn.title = 'Collapse sidebar';
+      }
+    });
+  </script>
+
+  <script>
+    // Purely Optimistic AJAX Like handling
+    document.addEventListener('submit', async (e) => {
+      const form = e.target.closest('.like-form');
+      if (form) {
+        e.preventDefault();
+        const button = form.querySelector('button');
+        const svg = button.querySelector('svg');
+        const countSpan = button.querySelector('.like-count');
+        
+        // 1. Instant UI Toggle
+        const wasLiked = button.classList.contains('liked');
+        const currentCount = parseInt(countSpan.textContent);
+        
+        button.classList.toggle('liked', !wasLiked);
+        svg.setAttribute('fill', !wasLiked ? 'currentColor' : 'none');
+        countSpan.textContent = !wasLiked ? currentCount + 1 : Math.max(0, currentCount - 1);
+        
+        // 2. Background Sync
+        const formData = new FormData(form);
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            body: new URLSearchParams(formData),
+            headers: {
+              'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value,
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+          
+          if (!response.ok) {
+            if (response.status === 401) {
+              window.location.href = '/Login/LoginPage';
+              return;
+            }
+            const errorText = await response.text();
+            console.error('Server error response:', errorText.substring(0, 500));
+            throw new Error(`Server returned ${response.status}`);
+          }
+          
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const result = await response.json();
+            if (result.success) {
+              countSpan.textContent = result.count;
+            }
+          } else {
+            const text = await response.text();
+            console.error('Unexpected response format. Expected JSON, got:', text.substring(0, 200));
+            throw new Error("Unexpected response format from server");
+          }
+        } catch (error) {
+          // 3. Rollback on connection problem
+          button.classList.toggle('liked', wasLiked);
+          svg.setAttribute('fill', wasLiked ? 'currentColor' : 'none');
+          countSpan.textContent = currentCount;
+          
+          console.error('Like failed details:', error);
+          alert("Problem connecting to the server. Please try again.");
+        }
       }
     });
   </script>

@@ -26,19 +26,40 @@ public class LikeController : Controller
     }
     [HttpPost]
     [Authorize]
-
     public async Task<IActionResult> LikePost(string postId)
-        {
-            await _likeService.ToggleLikePost(postId, await GetCurrentUserProfileId());
-            return RedirectToAction("Index", "Home");
-        }
+    {
+        var profileId = await GetCurrentUserProfileId();
+        if (profileId == null) return Unauthorized();
+
+        var isLiked = await _likeService.ToggleLikePost(profileId, postId);
+        
+        // Fetch the updated count
+        var post = await _unitOfWork.PostRepo.Get(postId);
+        
+        return Json(new { 
+            success = true, 
+            isLiked = isLiked, 
+            count = post?.LikesCount ?? 0 
+        });
+    }
 
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> LikeComment(string commentId)
     {
-            await _likeService.ToggleLikeComment(commentId, await GetCurrentUserProfileId());
-            return RedirectToAction("Index", "Home");
+        var profileId = await GetCurrentUserProfileId();
+        if (profileId == null) return Unauthorized();
+
+        var isLiked = await _likeService.ToggleLikeComment(profileId, commentId);
+        
+        // Fetch the updated count
+        var comment = await _unitOfWork.CommentRepo.Get(commentId);
+
+        return Json(new { 
+            success = true, 
+            isLiked = isLiked, 
+            count = comment?.LikesCount ?? 0 
+        });
     }
 }
 

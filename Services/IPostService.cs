@@ -8,7 +8,7 @@ namespace Twit.Services
         Task<Post> CreatePost(string userProfileId, string content);
         Task<Post> EditPost(string postId, string content);
         Task<Post> RePost(string userProfileId, string parentPostId);
-        Task<IEnumerable<PostViewModel>> FetchPosts();
+        Task<IEnumerable<PostViewModel>> FetchPosts(string? userProfileId = null);
         Task DeletePost(string postId);
     }
 }

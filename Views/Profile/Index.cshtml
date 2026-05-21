@@ -1,6 +1,8 @@
+@model Twit.Models.ViewModels.ProfileViewModel
 @{
-    ViewData["Title"] = "Profile";
+    ViewData["Title"] = Model.FirstName + " " + Model.LastName;
     Layout = null;
+    ViewData["ActiveNav"] = "profile";
 }
 
 <!DOCTYPE html>
@@ -8,7 +10,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sprout — Emma Green</title>
+  <title>Sprout — @Model.FirstName @Model.LastName</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -508,7 +510,10 @@
   <div class="cover">
     <div class="cover-pattern"></div>
     <div class="cover-emoji">🌿</div>
-    <button class="cover-edit-btn">Edit cover</button>
+    @if (Model.IsOwnProfile)
+    {
+        <button class="cover-edit-btn">Edit cover</button>
+    }
   </div>
 
   <!-- Main layout -->
@@ -518,11 +523,18 @@
     <div class="profile-header">
       <div class="profile-actions-row">
         <div class="avatar-wrapper">
-          <div class="avatar">EG</div>
+          <div class="avatar">@Model.Initials</div>
           <div class="avatar-badge">🌱</div>
         </div>
         <div class="profile-buttons">
-          <button class="btn-edit-profile">Edit Profile</button>
+          @if (Model.IsOwnProfile)
+          {
+            <a asp-controller="Settings" asp-action="Index" class="btn-edit-profile" style="text-decoration:none;display:inline-block;padding-top:9px;">Edit Profile</a>
+          }
+          else
+          {
+            <button class="btn-edit-profile">Follow</button>
+          }
           <button class="btn-share" title="Share profile">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
@@ -534,53 +546,57 @@
 
       <div class="profile-info">
         <div class="profile-name">
-          Emma Green
+          @Model.FirstName @Model.LastName
           <span class="verified-badge" title="Verified">✓</span>
         </div>
-        <div class="profile-handle">@@emmagreen</div>
+        <div class="profile-handle">@@@Model.Handle</div>
         <p class="profile-bio">
-          Nature enthusiast 🌿 | Amateur botanist | Sustainable living advocate |
-          Turning my balcony into a jungle, one plant at a time 🪴
-          <span class="bio-hashtag">#PlantMom</span> <span class="bio-hashtag">#GreenLiving</span>
+          @(Model.Bio ?? "No bio yet.")
         </p>
 
         <div class="profile-meta">
-          <span class="meta-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-            </svg>
-            Portland, Oregon
-          </span>
-          <span class="meta-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-            emmagreen.garden
-          </span>
+          @if (!string.IsNullOrEmpty(Model.Location))
+          {
+              <span class="meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                @Model.Location
+              </span>
+          }
+          @if (!string.IsNullOrEmpty(Model.Website))
+          {
+              <span class="meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                @Model.Website
+              </span>
+          }
           <span class="meta-item">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            Joined March 2022
+            Joined @Model.CreatedAt.ToString("MMMM yyyy")
           </span>
         </div>
 
         <div class="profile-stats">
           <div class="stat-item">
-            <span class="stat-number">486</span>
+            <span class="stat-number">@Model.PostCount</span>
             <span class="stat-label">Sprouts</span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">2,841</span>
+            <span class="stat-number">@Model.FollowersCount.ToString("N0")</span>
             <span class="stat-label">Followers</span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">312</span>
+            <span class="stat-number">@Model.FollowingCount.ToString("N0")</span>
             <span class="stat-label">Following</span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">18.4K</span>
+            <span class="stat-number">0</span>
             <span class="stat-label">Likes</span>
           </div>
         </div>
@@ -603,106 +619,55 @@
         <!-- Posts tab content (shown by default) -->
         <div id="sprouts-tab">
 
-          <div class="post-item">
-            <div class="post-item-header">
-              <div class="mini-avatar">EG</div>
-              <div class="post-item-meta">
-                <div class="post-item-name">Emma Green</div>
-                <div class="post-item-time">2h ago</div>
-              </div>
-            </div>
-            <p class="post-item-text">
-              Just planted my first herb garden this spring 🌱 Started with basil, rosemary, and thyme. There's something so grounding about working with soil and watching things grow. <span class="post-item-hashtag">#GardenLife</span> <span class="post-item-hashtag">#NatureLover</span>
-            </p>
-            <div class="post-item-img">🌿</div>
-            <div class="post-item-actions">
-              <button class="mini-action liked">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-                248
-              </button>
-              <button class="mini-action">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                34
-              </button>
-              <button class="mini-action">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                </svg>
-                89
-              </button>
-            </div>
-          </div>
+          @if (Model.Posts != null && Model.Posts.Any())
+          {
+            @foreach (var post in Model.Posts)
+            {
+              var timeAgo = (DateTime.UtcNow - post.CreatedAt);
+              var timeText = timeAgo.TotalMinutes < 60 ? $"{(int)timeAgo.TotalMinutes}m"
+                           : timeAgo.TotalHours < 24 ? $"{(int)timeAgo.TotalHours}h"
+                           : $"{(int)timeAgo.TotalDays}d";
 
-          <div class="post-item">
-            <div class="post-item-header">
-              <div class="mini-avatar">EG</div>
-              <div class="post-item-meta">
-                <div class="post-item-name">Emma Green</div>
-                <div class="post-item-time">Yesterday</div>
+              <div class="post-item">
+                <div class="post-item-header">
+                  <div class="mini-avatar">@post.AuthorInitials</div>
+                  <div class="post-item-meta">
+                    <div class="post-item-name">@post.AuthorName</div>
+                    <div class="post-item-time">@timeText</div>
+                  </div>
+                </div>
+                <p class="post-item-text">
+                  @post.Content
+                </p>
+                <div class="post-item-actions">
+                  <button class="mini-action @(post.IsLikedByCurrentUser ? "liked" : "")">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="@(post.IsLikedByCurrentUser ? "currentColor" : "none")" stroke="currentColor" stroke-width="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    @post.LikesCount
+                  </button>
+                  <button class="mini-action">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    0
+                  </button>
+                  <button class="mini-action">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                    </svg>
+                    @post.RepostCount
+                  </button>
+                </div>
               </div>
+            }
+          }
+          else
+          {
+            <div class="post-item" style="text-align:center;padding:40px 20px;color:var(--muted);">
+              <p>No sprouts yet.</p>
             </div>
-            <p class="post-item-text">
-              Switched to a fully plastic-free bathroom this month. It was easier than I thought and my skin actually prefers the natural alternatives. If you're curious where to start — just DM me 🌊 <span class="post-item-hashtag">#ZeroWaste</span> <span class="post-item-hashtag">#SustainableLiving</span>
-            </p>
-            <div class="post-item-actions">
-              <button class="mini-action">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-                182
-              </button>
-              <button class="mini-action">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                52
-              </button>
-              <button class="mini-action">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                </svg>
-                71
-              </button>
-            </div>
-          </div>
-
-          <div class="post-item">
-            <div class="post-item-header">
-              <div class="mini-avatar">EG</div>
-              <div class="post-item-meta">
-                <div class="post-item-name">Emma Green</div>
-                <div class="post-item-time">3 days ago</div>
-              </div>
-            </div>
-            <p class="post-item-text">
-              Morning routine check: woke up at 6am, watered my monstera, made pour-over coffee, sat by the window for 20 min with no phone. Highly recommend this for your mental health 🌅 <span class="post-item-hashtag">#MorningRoutine</span> <span class="post-item-hashtag">#Mindfulness</span>
-            </p>
-            <div class="post-item-img" style="background:linear-gradient(135deg,#d2dcb6,#e5ecc8);">☕</div>
-            <div class="post-item-actions">
-              <button class="mini-action liked">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-                407
-              </button>
-              <button class="mini-action">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                63
-              </button>
-              <button class="mini-action">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                </svg>
-                128
-              </button>
-            </div>
-          </div>
+          }
 
         </div>
 

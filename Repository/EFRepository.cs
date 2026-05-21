@@ -17,29 +17,31 @@ namespace Twit.Repository
         {
             return await _context.Set<TEntity>().FindAsync(id);
         }
+
         public async Task Add(TEntity entity)
         {
-            _context.Set<TEntity>().Add(entity);
-            await _context.SaveChangesAsync();
+            await _context.Set<TEntity>().AddAsync(entity);
+            // Removed SaveChangesAsync to support UnitOfWork pattern
         }
 
-        public async Task Delete(string id){
+        public async Task Delete(string id)
+        {
             var entity = await Get(id);
             if(entity == null) return;
             _context.Set<TEntity>().Remove(entity);
-            await _context.SaveChangesAsync();
+            // Removed SaveChangesAsync to support UnitOfWork pattern
         }
+
         public async Task Update(TEntity entity)
         {
             _context.Entry(entity).State = EntityState.Modified;
-            await _context.SaveChangesAsync();     
+            // Removed SaveChangesAsync to support UnitOfWork pattern
+            await Task.CompletedTask;
         }
 
        public IQueryable<TEntity> GetAll()
         {
             return _context.Set<TEntity>().AsQueryable();
         }
-
-        
     }
 }
