@@ -1,4 +1,4 @@
-﻿@model Twit.Models.ViewModels.HomeFeedViewModel
+@model Twit.Models.ViewModels.HomeFeedViewModel
 @{
     Layout = null;
     ViewData["Title"] = "Home";
@@ -936,17 +936,29 @@
           <div class="post-header">
             <div class="post-avatar color-a">@post.AuthorInitials</div>
             <div class="post-meta">
-              <div class="post-name">@post.AuthorName</div>
-              <div class="post-handle">@("@")@post.AuthorHandle · @timeText</div>
+              <a asp-controller="Profile" asp-action="Index" asp-route-handle="@post.AuthorHandle" style="text-decoration:none; color:inherit;">
+                <div class="post-name">@post.AuthorName</div>
+                <div class="post-handle" style="display:inline-block;">@("@")@post.AuthorHandle</div>
+              </a>
+              <span class="post-handle">· @timeText</span>
             </div>
-            <form asp-action="DeletePost" method="post" style="display:inline">
-              <input type="hidden" name="postId" value="@post.Id" />
-              <button type="submit" class="post-more" title="Delete post">
+            <div class="post-more-wrapper" style="position:relative;">
+              <button type="button" class="post-more" onclick="togglePostMenu(this)" title="Post options">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
                 </svg>
               </button>
-            </form>
+              <div class="post-menu" style="display:none;position:absolute;right:0;top:100%;background:var(--white);border:1px solid var(--sage-lt);border-radius:var(--r-sm);box-shadow:var(--shadow-card);z-index:100;min-width:140px;">
+                @if (post.IsOwnedByCurrentUser)
+                {
+                  <button type="button" class="post-menu-item" onclick="openEditModal('@post.Id', '@post.Content.Replace("'", "\\'")')" style="display:block;width:100%;padding:10px 14px;border:none;background:none;text-align:left;cursor:pointer;font-size:0.85rem;color:var(--text);">Edit</button>
+                }
+                <form asp-action="DeletePost" method="post" style="margin:0;">
+                  <input type="hidden" name="postId" value="@post.Id" />
+                  <button type="submit" class="post-menu-item" style="display:block;width:100%;padding:10px 14px;border:none;background:none;text-align:left;cursor:pointer;font-size:0.85rem;color:#c0392b;">Delete</button>
+                </form>
+              </div>
+            </div>
           </div>
           <p class="post-text">@post.Content</p>
           <div class="post-actions">
@@ -959,11 +971,11 @@
                 <span class="like-count">@post.LikesCount</span>
               </button>
             </form>
-            <button class="post-action">
+            <button class="post-action" onclick="toggleComments('@post.Id')">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
-              0
+              <span id="commentCount-@post.Id">@post.CommentCount</span>
             </button>
             <form asp-action="RePost" method="post" style="display:inline">
               <input type="hidden" name="postId" value="@post.Id" />
@@ -979,6 +991,18 @@
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
               </svg>
             </button>
+          </div>
+
+          <!-- Inline comment section (hidden by default) -->
+          <div class="comments-section" id="comments-@post.Id" style="display:none;margin-top:12px;padding-top:12px;border-top:var(--border);">
+            <div class="comments-list" id="commentsList-@post.Id">
+              <div class="comments-loading" style="text-align:center;padding:8px;color:var(--muted);font-size:0.82rem;display:none;">Loading comments…</div>
+            </div>
+            <form asp-controller="Comment" asp-action="Create" method="post" class="comment-form" style="display:flex;gap:8px;margin-top:10px;">
+              <input type="hidden" name="postId" value="@post.Id" />
+              <input type="text" name="content" placeholder="Write a reply…" required class="comment-input" style="flex:1;border:1px solid var(--sage-lt);border-radius:var(--r-pill);padding:8px 14px;font-size:0.85rem;outline:none;background:var(--cream);transition:border-color var(--t-ui);" onfocus="this.style.borderColor='var(--sage-md)'" onblur="this.style.borderColor='var(--sage-lt)'" />
+              <button type="submit" class="btn-sprout" style="padding:8px 16px;font-size:0.82rem;">Reply</button>
+            </form>
           </div>
         </div>
         }
@@ -1028,6 +1052,35 @@
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="modal-char-count" id="charCount">0 / 500</span>
             <button type="submit" class="modal-submit" id="modalSubmit" disabled>Sprout</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Post Modal -->
+  <div class="modal-overlay" id="editPostModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit Sprout</h3>
+        <button class="modal-close" onclick="closeEditModal()" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <form asp-action="EditPost" method="post">
+        <input type="hidden" name="postId" id="editPostId" />
+        <div class="modal-body">
+          <div class="modal-avatar">@Model.CurrentUserInitials</div>
+          <div class="modal-compose">
+            <textarea class="modal-textarea" name="content" id="editPostContent" autofocus></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+            <button type="button" class="modal-submit" onclick="closeEditModal()" style="background:var(--cream);color:var(--sage-dk);">Cancel</button>
+            <button type="submit" class="modal-submit">Save</button>
           </div>
         </div>
       </form>
@@ -1154,6 +1207,107 @@
         }
       }
     });
+  </script>
+
+  <script>
+    function togglePostMenu(btn) {
+      const menu = btn.nextElementSibling;
+      const isVisible = menu.style.display === 'block';
+      document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
+      if (!isVisible) menu.style.display = 'block';
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.post-more-wrapper')) {
+        document.querySelectorAll('.post-menu').forEach(m => m.style.display = 'none');
+      }
+    });
+
+    function openEditModal(postId, content) {
+      document.getElementById('editPostId').value = postId;
+      document.getElementById('editPostContent').value = content;
+      document.getElementById('editPostModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => document.getElementById('editPostContent').focus(), 100);
+    }
+
+    function closeEditModal() {
+      document.getElementById('editPostModal').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('editPostModal').addEventListener('click', (e) => {
+      if (e.target.id === 'editPostModal') closeEditModal();
+    });
+  </script>
+
+  <script>
+    // Comment toggle & AJAX loading
+    function formatTimeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) return mins + 'm';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h';
+      return Math.floor(hrs / 24) + 'd';
+    }
+
+    async function toggleComments(postId) {
+      const section = document.getElementById('comments-' + postId);
+      const list = document.getElementById('commentsList-' + postId);
+
+      if (section.style.display === 'none') {
+        section.style.display = 'block';
+
+        // Only fetch if we haven't loaded yet (no .comment-item children)
+        if (!list.querySelector('.comment-item')) {
+          const loader = list.querySelector('.comments-loading');
+          if (loader) loader.style.display = 'block';
+
+          try {
+            const response = await fetch('/Home/GetComments?postId=' + encodeURIComponent(postId));
+            const comments = await response.json();
+
+            if (loader) loader.style.display = 'none';
+
+            if (comments.length === 0) {
+              const empty = document.createElement('div');
+              empty.className = 'comments-empty';
+              empty.style.cssText = 'text-align:center;padding:12px 0;color:var(--muted);font-size:0.82rem;font-weight:600;';
+              empty.textContent = 'No comments yet — be the first to reply!';
+              list.appendChild(empty);
+            } else {
+              comments.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'comment-item';
+                div.style.cssText = 'display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream);';
+                div.innerHTML =
+                  '<div style="width:30px;height:30px;border-radius:50%;background:var(--sage-md);display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.7rem;font-weight:800;flex-shrink:0;">' +
+                    c.authorInitials +
+                  '</div>' +
+                  '<div style="flex:1;min-width:0;">' +
+                    '<div style="display:flex;align-items:baseline;gap:6px;">' +
+                      '<span style="font-size:0.84rem;font-weight:800;color:var(--text);">' + c.authorName + '</span>' +
+                      '<span style="font-size:0.75rem;color:var(--muted);font-weight:500;">' + formatTimeAgo(c.createdAt) + '</span>' +
+                    '</div>' +
+                    '<div style="font-size:0.84rem;color:var(--text);margin-top:2px;line-height:1.5;font-weight:500;">' + c.content + '</div>' +
+                  '</div>';
+                list.appendChild(div);
+              });
+            }
+          } catch (err) {
+            if (loader) loader.style.display = 'none';
+            console.error('Failed to load comments:', err);
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = 'text-align:center;padding:8px;color:var(--accent);font-size:0.82rem;';
+            errDiv.textContent = 'Failed to load comments. Try again.';
+            list.appendChild(errDiv);
+          }
+        }
+      } else {
+        section.style.display = 'none';
+      }
+    }
   </script>
 </body>
 </html>

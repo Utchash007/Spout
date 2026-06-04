@@ -1,7 +1,9 @@
+@model Twit.Models.ViewModels.SettingsViewModel
 @{
     ViewData["Title"] = "Settings";
     Layout = null;
     ViewData["ActiveNav"] = "settings";
+    var activePanel = ViewBag.ActivePanel as string ?? "edit-profile";
 }
 
 <!DOCTYPE html>
@@ -503,6 +505,24 @@
       letter-spacing: 0.5px; padding: 10px 0 4px;
       border-bottom: var(--border-thin); margin-bottom: 4px;
     }
+    .text-danger {
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-top: 5px;
+      display: block;
+    }
+    .validation-summary ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 20px 0;
+    }
+    .validation-summary li {
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
 
     @@media (max-width: 900px) {
       .layout { margin-left: var(--sidebar-col); }
@@ -533,37 +553,37 @@
       <div class="settings-body">
 
         <nav class="settings-nav">
-          <button class="settings-nav-item active" data-panel="edit-profile">
+          <button class="settings-nav-item @(activePanel == "edit-profile" ? "active" : "")" data-panel="edit-profile" type="button">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
             Edit Profile
           </button>
-          <button class="settings-nav-item" data-panel="account">
+          <button class="settings-nav-item @(activePanel == "account" ? "active" : "")" data-panel="account" type="button">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
             Account
           </button>
-          <button class="settings-nav-item" data-panel="privacy">
+          <button class="settings-nav-item @(activePanel == "privacy" ? "active" : "")" data-panel="privacy" type="button">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
             Privacy &amp; Safety
           </button>
-          <button class="settings-nav-item" data-panel="notifications">
+          <button class="settings-nav-item @(activePanel == "notifications" ? "active" : "")" data-panel="notifications" type="button">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
             Notifications
           </button>
-          <button class="settings-nav-item" data-panel="appearance">
+          <button class="settings-nav-item @(activePanel == "appearance" ? "active" : "")" data-panel="appearance" type="button">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </svg>
             Appearance
           </button>
-          <button class="settings-nav-item danger" data-panel="danger">
+          <button class="settings-nav-item danger @(activePanel == "danger" ? "active" : "")" data-panel="danger" type="button">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
@@ -571,17 +591,22 @@
           </button>
         </nav>
 
-        <div class="settings-panel-area">
+        <form asp-action="Update" method="post" id="settingsForm" class="settings-panel-area">
+          @Html.AntiForgeryToken()
+          <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
 
-          <div class="settings-panel active" id="panel-edit-profile">
+          <input type="hidden" asp-for="ProfileImage" />
+          <input type="hidden" asp-for="CoverImage" />
+
+          <div class="settings-panel @(activePanel == "edit-profile" ? "active" : "")" id="panel-edit-profile">
             <div class="panel-header">
               <h3>Edit Profile</h3>
-              <button class="btn-primary">Save Changes</button>
+              <button type="submit" class="btn-primary">Save Changes</button>
             </div>
 
             <div class="form-section" style="padding:0;overflow:hidden;">
               <div class="profile-media-edit">
-                <div class="banner-edit">
+                <div class="banner-edit" style="@(string.IsNullOrEmpty(Model.CoverImage) ? "" : $"background-image: url('{Model.CoverImage}'); background-size: cover; background-position: center;")">
                   <div class="banner-overlay">
                     <span>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -590,8 +615,11 @@
                   </div>
                 </div>
                 <div class="avatar-edit-wrap">
-                  <div class="avatar-edit">
-                    EG
+                  <div class="avatar-edit" style="@(string.IsNullOrEmpty(Model.ProfileImage) ? "" : $"background-image: url('{Model.ProfileImage}'); background-size: cover; background-position: center; color: transparent;")">
+                    @if (string.IsNullOrEmpty(Model.ProfileImage))
+                    {
+                        @((Model.FirstName?.Length > 0 ? Model.FirstName[0].ToString().ToUpper() : "") + (Model.LastName?.Length > 0 ? Model.LastName[0].ToString().ToUpper() : ""))
+                    }
                     <div class="avatar-overlay">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                     </div>
@@ -600,46 +628,46 @@
               </div>
               <div style="padding: 16px 24px 24px;">
                 <div class="form-group">
-                  <label for="displayName">Display Name</label>
-                  <input type="text" id="displayName" value="Emma Green" maxlength="50" />
+                  <label asp-for="FirstName">First Name</label>
+                  <input asp-for="FirstName" type="text" maxlength="50" required />
+                  <span asp-validation-for="FirstName" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                  <label asp-for="LastName">Last Name</label>
+                  <input asp-for="LastName" type="text" maxlength="50" required />
+                  <span asp-validation-for="LastName" class="text-danger"></span>
                 </div>
                 <div class="form-group">
                   <label for="username">Username</label>
-                  <input type="text" id="username" value="@@emmagreen" maxlength="30" />
-                  <div class="input-hint">sprout.app/@@emmagreen</div>
+                  <input type="text" id="username" value="@@@(ViewBag.Username ?? User.Identity?.Name)" readonly disabled />
+                  <div class="input-hint">sprout.app/@@@(ViewBag.Username ?? User.Identity?.Name)</div>
                 </div>
                 <div class="form-group">
-                  <label for="bio">Bio</label>
-                  <textarea id="bio" rows="3" maxlength="160" placeholder="Tell the world what you're growing…"></textarea>
+                  <label asp-for="Bio">Bio</label>
+                  <textarea asp-for="Bio" rows="3" maxlength="160" placeholder="Tell the world what you're growing…"></textarea>
                   <div class="char-counter" id="bioCounter">0 / 160</div>
+                  <span asp-validation-for="Bio" class="text-danger"></span>
                 </div>
                 <div class="form-group">
-                  <label for="website">Website</label>
-                  <input type="url" id="website" placeholder="yoursite.com" />
+                  <label asp-for="Website">Website</label>
+                  <input asp-for="Website" type="url" placeholder="yoursite.com" />
+                  <span asp-validation-for="Website" class="text-danger"></span>
                 </div>
                 <div class="form-group">
-                  <label for="location">Location</label>
-                  <input type="text" id="location" placeholder="City, Country" />
+                  <label asp-for="Location">Location</label>
+                  <input asp-for="Location" type="text" placeholder="City, Country" />
+                  <span asp-validation-for="Location" class="text-danger"></span>
                 </div>
                 <div class="form-group">
-                  <label for="dob">Date of Birth</label>
-                  <input type="date" id="dob" />
-                </div>
-                <div class="form-group">
-                  <label for="gender">Gender</label>
-                  <select id="gender">
-                    <option>Prefer not to say</option>
-                    <option>Female</option>
-                    <option>Male</option>
-                    <option>Non-binary</option>
-                    <option>Other</option>
-                  </select>
+                  <label asp-for="DOB">Date of Birth</label>
+                  <input asp-for="DOB" type="date" />
+                  <span asp-validation-for="DOB" class="text-danger"></span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="settings-panel" id="panel-account">
+          <div class="settings-panel @(activePanel == "account" ? "active" : "")" id="panel-account">
             <div class="panel-header">
               <h3>Account</h3>
             </div>
@@ -649,23 +677,30 @@
               <div class="account-row">
                 <div class="account-row-info">
                   <div class="account-row-label">Email</div>
-                  <div class="account-row-value">em***@@example.com</div>
+                  <div class="account-row-value">@(ViewBag.Email ?? "No email address found")</div>
                 </div>
-                <button class="btn-outline btn-sm">Change Email</button>
               </div>
-              <div class="account-row">
-                <div class="account-row-info">
-                  <div class="account-row-label">Password</div>
-                  <div class="account-row-value">Last changed 3 months ago</div>
+              
+              <div class="account-row" style="display: block;">
+                <div class="account-row-info" style="margin-bottom: 16px;">
+                  <div class="account-row-label">Change Password</div>
                 </div>
-                <button class="btn-outline btn-sm">Change Password</button>
-              </div>
-              <div class="account-row">
-                <div class="account-row-info">
-                  <div class="account-row-label">Phone Number</div>
-                  <div class="account-row-value" style="color:var(--faint)">Not added</div>
+                <div class="form-group">
+                  <label asp-for="CurrentPassword">Current Password</label>
+                  <input asp-for="CurrentPassword" type="password" autocomplete="current-password" placeholder="Enter current password" />
+                  <span asp-validation-for="CurrentPassword" class="text-danger"></span>
                 </div>
-                <button class="btn-outline btn-sm">Add Phone</button>
+                <div class="form-group">
+                  <label asp-for="NewPassword">New Password</label>
+                  <input asp-for="NewPassword" type="password" autocomplete="new-password" placeholder="Enter new password" />
+                  <span asp-validation-for="NewPassword" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                  <label asp-for="ConfirmNewPassword">Confirm New Password</label>
+                  <input asp-for="ConfirmNewPassword" type="password" autocomplete="new-password" placeholder="Confirm new password" />
+                  <span asp-validation-for="ConfirmNewPassword" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 10px;">Update Password &amp; Save</button>
               </div>
             </div>
 
@@ -684,7 +719,7 @@
                   <div class="connected-name">Google</div>
                   <div class="connected-status on">Connected</div>
                 </div>
-                <button class="btn-sm btn-sm-outline">Disconnect</button>
+                <button type="button" class="btn-sm btn-sm-outline">Disconnect</button>
               </div>
               <div class="connected-row">
                 <div class="connected-icon">
@@ -696,7 +731,7 @@
                   <div class="connected-name">Apple</div>
                   <div class="connected-status off">Not connected</div>
                 </div>
-                <button class="btn-outline btn-sm">Connect</button>
+                <button type="button" class="btn-outline btn-sm">Connect</button>
               </div>
             </div>
 
@@ -712,7 +747,7 @@
                   <div class="session-device">Chrome on Windows</div>
                   <div class="session-meta">Warsaw, Poland · Active now</div>
                 </div>
-                <button class="btn-sm btn-sm-danger" style="opacity:0.5;cursor:default;" title="Current session">Current</button>
+                <button type="button" class="btn-sm btn-sm-danger" style="opacity:0.5;cursor:default;" title="Current session">Current</button>
               </div>
               <div class="session-row">
                 <div class="session-icon">
@@ -724,12 +759,12 @@
                   <div class="session-device">Safari on iPhone</div>
                   <div class="session-meta">Warsaw, Poland · 2 hours ago</div>
                 </div>
-                <button class="btn-sm btn-sm-danger">Revoke</button>
+                <button type="button" class="btn-sm btn-sm-danger">Revoke</button>
               </div>
             </div>
           </div>
 
-          <div class="settings-panel" id="panel-privacy">
+          <div class="settings-panel @(activePanel == "privacy" ? "active" : "")" id="panel-privacy">
             <div class="panel-header">
               <h3>Privacy &amp; Safety</h3>
             </div>
@@ -794,11 +829,11 @@
             </div>
           </div>
 
-          <div class="settings-panel" id="panel-notifications">
+          <div class="settings-panel @(activePanel == "notifications" ? "active" : "")" id="panel-notifications">
             <div class="panel-header">
               <h3>Notifications</h3>
             </div>
-
+            
             <div class="form-section">
               <div class="notif-group-title">Push Notifications</div>
               <div class="notif-group">
@@ -860,7 +895,7 @@
             </div>
           </div>
 
-          <div class="settings-panel" id="panel-appearance">
+          <div class="settings-panel @(activePanel == "appearance" ? "active" : "")" id="panel-appearance">
             <div class="panel-header">
               <h3>Appearance</h3>
             </div>
@@ -882,10 +917,9 @@
                 </div>
               </div>
             </div>
-
           </div>
 
-          <div class="settings-panel" id="panel-danger">
+          <div class="settings-panel @(activePanel == "danger" ? "active" : "")" id="panel-danger">
             <div class="panel-header">
               <h3 style="color:var(--accent);">Danger Zone</h3>
             </div>
@@ -896,20 +930,20 @@
                   <div class="danger-block-title">Deactivate Account</div>
                   <div class="danger-block-desc">Temporarily disable your account. Your profile and posts will be hidden until you reactivate by logging back in.</div>
                 </div>
-                <button class="btn-outline-accent">Deactivate</button>
+                <button type="button" class="btn-outline-accent">Deactivate</button>
               </div>
               <div class="danger-block">
                 <div class="danger-block-info">
                   <div class="danger-block-title">Delete Account</div>
                   <div class="danger-block-desc">Permanently delete your account and all your data. This action cannot be undone and all your posts, followers, and data will be lost forever.</div>
                 </div>
-                <button class="btn-danger">Delete Account</button>
+                <button type="button" class="btn-danger">Delete Account</button>
               </div>
             </div>
           </div>
+        </form>
 
         </div>
-      </div>
     </main>
   </div>
 
@@ -918,23 +952,25 @@
     const layout      = document.getElementById('mainLayout');
     const toggleBtn   = document.getElementById('sidebarToggle');
     const toggleIcon  = document.getElementById('toggleIcon');
-    const toggleLabel = toggleBtn.querySelector('.toggle-label');
+    const toggleLabel = toggleBtn ? toggleBtn.querySelector('.toggle-label') : null;
     let collapsed = false;
 
-    toggleBtn.addEventListener('click', () => {
-      collapsed = !collapsed;
-      sidebar.classList.toggle('collapsed', collapsed);
-      layout.classList.toggle('collapsed', collapsed);
-      if (collapsed) {
-        toggleIcon.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
-        toggleLabel.textContent = 'Expand';
-        toggleBtn.title = 'Expand sidebar';
-      } else {
-        toggleIcon.innerHTML = '<polyline points="15 18 9 12 15 6"/>';
-        toggleLabel.textContent = 'Collapse';
-        toggleBtn.title = 'Collapse sidebar';
-      }
-    });
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        collapsed = !collapsed;
+        sidebar.classList.toggle('collapsed', collapsed);
+        layout.classList.toggle('collapsed', collapsed);
+        if (collapsed) {
+          toggleIcon.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
+          if (toggleLabel) toggleLabel.textContent = 'Expand';
+          toggleBtn.title = 'Expand sidebar';
+        } else {
+          toggleIcon.innerHTML = '<polyline points="15 18 9 12 15 6"/>';
+          if (toggleLabel) toggleLabel.textContent = 'Collapse';
+          toggleBtn.title = 'Collapse sidebar';
+        }
+      });
+    }
 
     const navItems = document.querySelectorAll('.settings-nav-item');
     const panels   = document.querySelectorAll('.settings-panel');
@@ -949,15 +985,82 @@
       });
     });
 
-    const bioInput = document.getElementById('bio');
+    const bioInput = document.getElementById('Bio');
     const bioCounter = document.getElementById('bioCounter');
     if (bioInput && bioCounter) {
-      bioInput.addEventListener('input', () => {
+      const updateCounter = () => {
         const len = bioInput.value.length;
         bioCounter.textContent = len + ' / 160';
         bioCounter.classList.toggle('warn', len > 140);
+      };
+      bioInput.addEventListener('input', updateCounter);
+      updateCounter(); // Run on load
+    }
+
+    // Interactive avatar and banner edit support
+    const bannerEdit = document.querySelector('.banner-edit');
+    const avatarEdit = document.querySelector('.avatar-edit');
+    const coverImageInput = document.getElementById('CoverImage');
+    const profileImageInput = document.getElementById('ProfileImage');
+
+    if (bannerEdit && coverImageInput) {
+      bannerEdit.addEventListener('click', () => {
+        const url = prompt('Enter Cover Image URL:', coverImageInput.value || '');
+        if (url !== null) {
+          coverImageInput.value = url;
+          if (url) {
+            bannerEdit.style.backgroundImage = `url('${url}')`;
+            bannerEdit.style.backgroundSize = 'cover';
+            bannerEdit.style.backgroundPosition = 'center';
+          } else {
+            bannerEdit.style.backgroundImage = '';
+          }
+        }
+      });
+    }
+
+    if (avatarEdit && profileImageInput) {
+      avatarEdit.addEventListener('click', () => {
+        const url = prompt('Enter Profile Image URL:', profileImageInput.value || '');
+        if (url !== null) {
+          profileImageInput.value = url;
+          if (url) {
+            avatarEdit.style.backgroundImage = `url('${url}')`;
+            avatarEdit.style.backgroundSize = 'cover';
+            avatarEdit.style.backgroundPosition = 'center';
+            avatarEdit.style.color = 'transparent';
+          } else {
+            avatarEdit.style.backgroundImage = '';
+            avatarEdit.style.color = '';
+            // Set initials if empty
+            const firstName = document.getElementById('FirstName')?.value || '';
+            const lastName = document.getElementById('LastName')?.value || '';
+            avatarEdit.textContent = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase();
+          }
+        }
       });
     }
   </script>
+
+  @if (TempData["SettingsSuccess"] != null)
+  {
+      <script>
+          document.addEventListener('DOMContentLoaded', () => {
+              const toast = document.createElement('div');
+              toast.className = 'toast-success';
+              toast.textContent = 'Profile updated successfully!';
+              toast.style.cssText = 'position:fixed;top:80px;right:20px;background:var(--sage-dk);color:var(--cream);padding:12px 24px;border-radius:var(--r-pill);font-weight:700;z-index:9999;transition:opacity 0.3s ease, transform 0.3s ease;transform:translateY(-10px);opacity:0;';
+              document.body.appendChild(toast);
+              toast.offsetHeight; // force reflow
+              toast.style.transform = 'translateY(0)';
+              toast.style.opacity = '1';
+              setTimeout(() => {
+                  toast.style.transform = 'translateY(-10px)';
+                  toast.style.opacity = '0';
+                  setTimeout(() => toast.remove(), 300);
+              }, 3000);
+          });
+      </script>
+  }
 </body>
 </html>

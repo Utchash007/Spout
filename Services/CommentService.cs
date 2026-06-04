@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Twit.Models;
+using Twit.Models.ViewModels;
 using Twit.UnitOfWork;
 
 namespace Twit.Services
@@ -45,6 +47,34 @@ namespace Twit.Services
         {
             await _unitOfWork.CommentRepo.Delete(commentId);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<CommentViewModel>> FetchComments(string postId)
+        {
+            var comments = await _unitOfWork.CommentRepo.GetAll()
+                .Include(c => c.UserProfile)
+                    .ThenInclude(up => up.User)
+                .Where(c => c.PostId == postId && c.ParentCommentId == null)
+                .OrderBy(c => c.CreatedAt)
+                .ToListAsync();
+
+            return comments.Select(c =>
+            {
+                var initials = "";
+                if (!string.IsNullOrEmpty(c.UserProfile?.FirstName)) initials += c.UserProfile.FirstName[0];
+                if (!string.IsNullOrEmpty(c.UserProfile?.LastName)) initials += c.UserProfile.LastName[0];
+
+                return new CommentViewModel
+                {
+                    Id = c.Id,
+                    PostId = c.PostId,
+                    Content = c.Content,
+                    LikesCount = c.LikesCount,
+                    CreatedAt = c.CreatedAt,
+                    AuthorName = $"{c.UserProfile?.FirstName} {c.UserProfile?.LastName}".Trim(),
+                    AuthorInitials = initials.Length > 0 ? initials.ToUpper() : "?"
+                };
+            }).ToList();
         }
     }
 }

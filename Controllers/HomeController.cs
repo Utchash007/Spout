@@ -13,11 +13,13 @@ namespace Twit.Controllers;
 public class HomeController : Controller
 {
     private readonly IPostService _postService;
+    private readonly ICommentService _commentService;
     private readonly IUnitOfWork _unitOfWork;
 
-    public HomeController(IPostService postService, IUnitOfWork unitOfWork)
+    public HomeController(IPostService postService, ICommentService commentService, IUnitOfWork unitOfWork)
     {
         _postService = postService;
+        _commentService = commentService;
         _unitOfWork = unitOfWork;
     }
 
@@ -91,6 +93,29 @@ public class HomeController : Controller
     {
         await _postService.DeletePost(postId);
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> EditPost(string postId, string content)
+    {
+        var profileId = await GetCurrentUserProfileId();
+        var post = await _unitOfWork.PostRepo.Get(postId);
+
+        if (post == null || post.UserProfileId != profileId)
+        {
+            return Forbid();
+        }
+
+        await _postService.EditPost(postId, content);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetComments(string postId)
+    {
+        var comments = await _commentService.FetchComments(postId);
+        return Json(comments);
     }
 
     public IActionResult Privacy()

@@ -14,6 +14,8 @@ namespace Twit.Models.ViewModels
         public string AuthorHandle { get; set; } = string.Empty;
         public string AuthorInitials { get; set; } = "?";
         
+        public int CommentCount { get; set; }
         public bool IsLikedByCurrentUser { get; set; }
+        public bool IsOwnedByCurrentUser { get; set; }
     }
 }

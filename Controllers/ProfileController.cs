@@ -30,16 +30,29 @@ public class ProfileController : Controller
         return userProfile?.Id;
     }
 
-    public async Task<IActionResult> Index(string? Id)
+    public async Task<IActionResult> Index(string? Id, string? handle)
     {   
         var currentProfileId = await GetCurrentUserProfileId();
         UserProfile? profile = null;
-        if (Id != null) profile = await _unitOfWork.UserProfileRepo.GetAll().Include(up=>up.User).FirstOrDefaultAsync(up => up.Id == Id);
+
+        if (!string.IsNullOrEmpty(handle))
+        {
+            profile = await _unitOfWork.UserProfileRepo.GetAll()
+                .Include(up => up.User)
+                .FirstOrDefaultAsync(up => up.User.UserName == handle);
+        }
+        else if (Id != null) 
+        {
+            profile = await _unitOfWork.UserProfileRepo.GetAll()
+                .Include(up => up.User)
+                .FirstOrDefaultAsync(up => up.Id == Id);
+        }
         else
         {
             if (currentProfileId == null) return RedirectToAction("LoginPage", "Login");
             profile = await _unitOfWork.UserProfileRepo.GetAll()
-                .Include(up=>up.User).FirstOrDefaultAsync(up => up.Id == currentProfileId);
+                .Include(up => up.User)
+                .FirstOrDefaultAsync(up => up.Id == currentProfileId);
         }
 
         if (profile == null) return NotFound();

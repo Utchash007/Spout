@@ -86,8 +86,10 @@ namespace Twit.Services
                     AuthorName   = $"{firstName} {lastName}".Trim(),
                     AuthorHandle = p.UserProfile?.User?.UserName ?? "",
                     AuthorInitials = initials,
+                    CommentCount = _unitOfWork.CommentRepo.GetAll().Count(c => c.PostId == p.Id),
                     IsLikedByCurrentUser = userProfileId != null && 
-                        _unitOfWork.LikeRepo.GetAll().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id)
+                        _unitOfWork.LikeRepo.GetAll().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
+                    IsOwnedByCurrentUser = userProfileId != null && p.UserProfileId == userProfileId
                 };
             });
         }
