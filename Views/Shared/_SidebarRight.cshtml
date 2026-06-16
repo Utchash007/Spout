@@ -39,31 +39,30 @@
 
   <div class="widget">
     <h3>Who to Follow</h3>
-    <div class="suggest-item">
-      <div class="suggest-avatar" style="background:var(--sage-lt);color:var(--sage-xdk)">AW</div>
-      <div class="suggest-info">
-        <div class="suggest-name">Amy Walsh</div>
-        <div class="suggest-handle">@@amywalsh</div>
-      </div>
-      <button class="btn-follow">Follow</button>
-    </div>
-    <div class="suggest-item">
-      <div class="suggest-avatar" style="background:var(--sage-mid2);color:var(--white)">DP</div>
-      <div class="suggest-info">
-        <div class="suggest-name">Dan Park</div>
-        <div class="suggest-handle">@@danpark</div>
-      </div>
-      <button class="btn-follow">Follow</button>
-    </div>
-    <div class="suggest-item">
-      <div class="suggest-avatar" style="background:var(--sage-dk);color:var(--cream)">LM</div>
-      <div class="suggest-info">
-        <div class="suggest-name">Lily Marsh</div>
-        <div class="suggest-handle">@@lilymarsh</div>
-      </div>
-      <button class="btn-follow">Follow</button>
-    </div>
-    <div class="widget-footer">Discover more people →</div>
+    @if (ViewBag.SuggestedUsers != null && ((IEnumerable<Twit.Models.UserProfile>)ViewBag.SuggestedUsers).Any())
+    {
+        @foreach (var user in (IEnumerable<Twit.Models.UserProfile>)ViewBag.SuggestedUsers)
+        {
+            var initials = (user.FirstName.Length > 0 ? user.FirstName[0].ToString() : "") 
+                         + (user.LastName.Length > 0 ? user.LastName[0].ToString() : "");
+            <div class="suggest-item">
+                <div class="suggest-avatar" style="background:var(--sage-md);color:var(--white)">@initials.ToUpper()</div>
+                <div class="suggest-info">
+                    <div class="suggest-name">@user.FirstName @user.LastName</div>
+                    <div class="suggest-handle">@@@user.User.UserName</div>
+                </div>
+                <form class="ajax-follow-form" asp-controller="Follow" asp-action="Follow" method="post" style="display:inline">
+                    <input type="hidden" name="profileId" value="@user.Id" />
+                    <button type="submit" class="btn-follow">Follow</button>
+                </form>
+            </div>
+        }
+        <div class="widget-footer">Discover more people →</div>
+    }
+    else
+    {
+        <p style="font-size:0.85rem;color:var(--muted);text-align:center;padding:10px 0;">No suggestions available.</p>
+    }
   </div>
 
   <div class="footer-links">
@@ -74,4 +73,47 @@
     © 2026 Sprout Inc.
   </div>
 
+  <style>
+    .sidebar-right .btn-loader {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid currentColor;
+      border-bottom-color: transparent;
+      border-radius: 50%;
+      animation: sidebar-btn-spin 0.75s linear infinite;
+      vertical-align: middle;
+    }
+    @@keyframes sidebar-btn-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <script src="/lib/jquery/dist/jquery.min.js"></script>
+  <script>
+    $(document).on('submit', '.sidebar-right .ajax-follow-form', function(e) {
+      e.preventDefault();
+      var $btn = $(this).find('button');
+
+      $btn.prop('disabled', true).html('<span class="btn-loader"></span>');
+
+      $.ajax({
+        url: '/Follow/Follow',
+        type: 'POST',
+        data: { profileId: $(this).find('input[name="profileId"]').val() },
+        headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() }
+      })
+      .done(function(data) {
+        if (data.success) {
+          $btn.closest('.suggest-item')
+              .animate({ opacity: 0 }, 300)
+              .slideUp(300, function() { $(this).remove(); });
+        } else { $btn.text('Follow').prop('disabled', false); }
+      })
+      .fail(function(xhr) {
+        $btn.text('Follow').prop('disabled', false);
+        if (xhr.status === 401) window.location.href = '/login';
+      });
+    });
+  </script>
 </aside>

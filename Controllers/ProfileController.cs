@@ -13,10 +13,12 @@ public class ProfileController : Controller
 {   
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPostService _postService;
-    public ProfileController(IUnitOfWork unitOfWork, IPostService postService)
+    private readonly IFollowService _followService;
+    public ProfileController(IUnitOfWork unitOfWork, IPostService postService, IFollowService followService)
     {
         _unitOfWork = unitOfWork;
         _postService = postService;
+        _followService = followService;
     }
 
     private async Task<string?> GetCurrentUserProfileId()
@@ -85,6 +87,40 @@ public class ProfileController : Controller
             Posts = userPosts,
             IsOwnProfile = profile.Id == currentProfileId
         };
+
+        if (currentProfileId != null && profile.Id != currentProfileId)
+        {
+            ViewBag.IsFollowing = await _followService.IsFollowing(currentProfileId, profile.Id);
+        }
+        else
+        {
+            ViewBag.IsFollowing = false;
+        }
+
+        if (currentProfileId != null)
+        {
+            var followingIds = await _unitOfWork.FollowRepo.GetAll()
+                .Where(f => f.FollowerId == currentProfileId)
+                .Select(f => f.FollowingId)
+                .ToListAsync();
+
+            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll()
+                .Include(up => up.User)
+                .Where(up => up.Id != currentProfileId && !followingIds.Contains(up.Id))
+                .Take(3)
+                .ToListAsync();
+
+            ViewBag.SuggestedUsers = suggestedUsers;
+        }
+        else
+        {
+            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll()
+                .Include(up => up.User)
+                .Take(3)
+                .ToListAsync();
+
+            ViewBag.SuggestedUsers = suggestedUsers;
+        }
 
         return View(model);
     }

@@ -151,6 +151,19 @@
       background: var(--sage-dk);
       color: var(--cream);
     }
+    .btn-loader {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-bottom-color: transparent;
+      border-radius: 50%;
+      animation: btn-spin 0.75s linear infinite;
+      vertical-align: middle;
+    }
+    @@keyframes btn-spin {
+      to { transform: rotate(360deg); }
+    }
     .btn-share {
       width: 38px; height: 38px;
       border-radius: 50%;
@@ -533,7 +546,17 @@
           }
           else
           {
-            <button class="btn-edit-profile">Follow</button>
+            <form id="main-follow-form" asp-controller="Follow" asp-action="ToggleFollow" method="post" style="display:inline">
+                <input type="hidden" name="profileId" value="@Model.Id" />
+                @if (ViewBag.IsFollowing == true)
+                {
+                    <button type="submit" class="btn-edit-profile">Following</button>
+                }
+                else
+                {
+                    <button type="submit" class="btn-edit-profile" style="background:var(--sage-dk);color:var(--cream);">Follow</button>
+                }
+            </form>
           }
           <button class="btn-share" title="Share profile">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -588,11 +611,11 @@
             <span class="stat-label">Sprouts</span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">@Model.FollowersCount.ToString("N0")</span>
+            <span class="stat-number" id="followers-count">@Model.FollowersCount.ToString("N0")</span>
             <span class="stat-label">Followers</span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">@Model.FollowingCount.ToString("N0")</span>
+            <span class="stat-number" id="following-count">@Model.FollowingCount.ToString("N0")</span>
             <span class="stat-label">Following</span>
           </div>
           <div class="stat-item">
@@ -729,30 +752,29 @@
         <!-- Mutual connections -->
         <div class="widget">
           <h3>Suggested Connections</h3>
-          <div class="mutual-item">
-            <div class="mutual-avatar" style="background:#c4d4b0;color:#4a5545">ML</div>
-            <div class="mutual-info">
-              <div class="mutual-name">Maya Lin</div>
-              <div class="mutual-handle">@@mayalin</div>
-            </div>
-            <button class="btn-sm-follow">Follow</button>
-          </div>
-          <div class="mutual-item">
-            <div class="mutual-avatar" style="background:#8fb08a;color:#fff">JR</div>
-            <div class="mutual-info">
-              <div class="mutual-name">Jake Rivera</div>
-              <div class="mutual-handle">@@jakerivera</div>
-            </div>
-            <button class="btn-sm-follow">Follow</button>
-          </div>
-          <div class="mutual-item">
-            <div class="mutual-avatar" style="background:#778873;color:#f1f3e0">TN</div>
-            <div class="mutual-info">
-              <div class="mutual-name">Tom Nguyen</div>
-              <div class="mutual-handle">@@tomnguyen</div>
-            </div>
-            <button class="btn-sm-follow">Follow</button>
-          </div>
+          @if (ViewBag.SuggestedUsers != null && ((IEnumerable<Twit.Models.UserProfile>)ViewBag.SuggestedUsers).Any())
+          {
+            @foreach (var user in (IEnumerable<Twit.Models.UserProfile>)ViewBag.SuggestedUsers)
+            {
+              var initials = (user.FirstName.Length > 0 ? user.FirstName[0].ToString() : "") 
+                           + (user.LastName.Length > 0 ? user.LastName[0].ToString() : "");
+              <div class="mutual-item">
+                <div class="mutual-avatar" style="background:var(--sage-md);color:#fff">@initials.ToUpper()</div>
+                <div class="mutual-info">
+                  <div class="mutual-name">@user.FirstName @user.LastName</div>
+                  <div class="mutual-handle">@@@user.User.UserName</div>
+                </div>
+                <form class="ajax-follow-form" asp-controller="Follow" asp-action="Follow" method="post" style="display:inline">
+                  <input type="hidden" name="profileId" value="@user.Id" />
+                  <button type="submit" class="btn-sm-follow">Follow</button>
+                </form>
+              </div>
+            }
+          }
+          else
+          {
+            <p style="font-size:0.85rem;color:var(--muted);text-align:center;padding:10px 0;">No suggestions available.</p>
+          }
         </div>
 
         <!-- Interests -->
@@ -772,7 +794,7 @@
       </div>
     </div>
   </div>
-
+  <script src="/lib/jquery/dist/jquery.min.js"></script>
   <script>
     // Simple tab switching
     document.querySelectorAll('.tab-btn').forEach((btn, i) => {
@@ -789,6 +811,64 @@
           media.style.display = 'none';
         }
       });
+    });
+
+    // Shared AJAX helper
+    function followAjax(url, profileId) {
+      return $.ajax({
+        url: url,
+        type: 'POST',
+        data: { profileId: profileId },
+        headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() }
+      });
+    }
+
+    // Main follow/unfollow toggle
+    $('#main-follow-form').on('submit', function(e) {
+      e.preventDefault();
+      var $btn = $(this).find('button');
+      var saved = $btn.text();
+
+      $btn.prop('disabled', true).html('<span class="btn-loader"></span>');
+
+      followAjax('/Follow/ToggleFollow', $(this).find('input[name="profileId"]').val())
+        .done(function(data) {
+          if (data.success) {
+            $('#followers-count').text(Number(data.followersCount).toLocaleString());
+            $('#following-count').text(Number(data.followingCount).toLocaleString());
+            $btn.text(data.isFollowing ? 'Following' : 'Follow')
+                .css({
+                  background: data.isFollowing ? 'transparent' : 'var(--sage-dk)',
+                  color: data.isFollowing ? 'var(--sage-dk)' : 'var(--cream)'
+                });
+          } else { $btn.text(saved); }
+        })
+        .fail(function(xhr) {
+          $btn.text(saved);
+          if (xhr.status === 401) window.location.href = '/login';
+        })
+        .always(function() { $btn.prop('disabled', false); });
+    });
+
+    // Suggestion follow buttons (delegated)
+    $(document).on('submit', '.ajax-follow-form', function(e) {
+      e.preventDefault();
+      var $btn = $(this).find('button');
+
+      $btn.prop('disabled', true).html('<span class="btn-loader"></span>');
+
+      followAjax('/Follow/Follow', $(this).find('input[name="profileId"]').val())
+        .done(function(data) {
+          if (data.success) {
+            $btn.closest('.mutual-item, .suggest-item')
+                .animate({ opacity: 0 }, 300)
+                .slideUp(300, function() { $(this).remove(); });
+          } else { $btn.text('Follow').prop('disabled', false); }
+        })
+        .fail(function(xhr) {
+          $btn.text('Follow').prop('disabled', false);
+          if (xhr.status === 401) window.location.href = '/login';
+        });
     });
   </script>
 
