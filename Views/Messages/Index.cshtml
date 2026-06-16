@@ -1,3 +1,4 @@
+@model Twit.Models.ViewModels.MessagesViewModel
 @{
     Layout = null;
     ViewData["Title"] = "Messages";
@@ -492,6 +493,7 @@
       font-weight: 500;
       line-height: 1.5;
       max-width: 100%;
+      word-break: break-word;
     }
     .chat-msg.received .chat-bubble {
       background: var(--white);
@@ -663,185 +665,174 @@
         </div>
         <div class="convo-list">
 
-          <!-- Convo 1 — active + unread -->
-          <div class="convo-item active unread" id="convo-maya">
-            <div class="convo-avatar" style="background:var(--sage-md)">
-              ML
-              <span class="online-dot"></span>
-            </div>
-            <div class="convo-info">
-              <div class="convo-name-row">
-                <span class="convo-name">Maya Lin</span>
-                <span class="convo-time">2m</span>
-              </div>
-              <div class="convo-preview">Hey! Did you see that new feature?</div>
-            </div>
-            <div class="convo-unread-badge">3</div>
-          </div>
+          @if (Model.Conversations != null && Model.Conversations.Any())
+          {
+            @foreach (var convo in Model.Conversations)
+            {
+              var otherParticipant = convo.Participants.FirstOrDefault(p => p.UserProfileId != Model.CurrentProfileId)?.UserProfile;
+              var isSelected = Model.ActiveConversation?.Id == convo.Id;
+              var initials = "";
+              if (otherParticipant != null)
+              {
+                if (!string.IsNullOrEmpty(otherParticipant.FirstName)) initials += otherParticipant.FirstName[0];
+                if (!string.IsNullOrEmpty(otherParticipant.LastName)) initials += otherParticipant.LastName[0];
+                initials = initials.ToUpper();
+              }
+              var lastMessage = convo.Messages.OrderByDescending(m => m.CreatedAt).FirstOrDefault();
+              var unreadCount = convo.Messages.Count(m => !m.IsRead && m.SenderProfileId != Model.CurrentProfileId);
 
-          <!-- Convo 2 -->
-          <div class="convo-item" id="convo-jake">
-            <div class="convo-avatar" style="background:var(--sage-dk)">JR</div>
-            <div class="convo-info">
-              <div class="convo-name-row">
-                <span class="convo-name">Jake Rivera</span>
-                <span class="convo-time">15m</span>
-              </div>
-              <div class="convo-preview">Thanks for the follow back!</div>
+              <a href="@Url.Action("Chat", "Messages", new { conversationId = convo.Id })" style="text-decoration: none; color: inherit;">
+                <div class="convo-item @(isSelected ? "active" : "") @(unreadCount > 0 ? "unread" : "")" id="convo-@convo.Id">
+                  <div class="convo-avatar" style="background:var(--sage-md)">
+                    @initials
+                  </div>
+                  <div class="convo-info">
+                    <div class="convo-name-row">
+                      <span class="convo-name">@(otherParticipant?.FirstName) @(otherParticipant?.LastName)</span>
+                      @if (lastMessage != null)
+                      {
+                        var timeAgo = (DateTime.UtcNow - lastMessage.CreatedAt);
+                        var timeText = timeAgo.TotalMinutes < 60 ? $"{(int)timeAgo.TotalMinutes}m"
+                                     : timeAgo.TotalHours < 24 ? $"{(int)timeAgo.TotalHours}h"
+                                     : $"{(int)timeAgo.TotalDays}d";
+                        <span class="convo-time">@timeText</span>
+                      }
+                    </div>
+                    <div class="convo-preview">@(lastMessage?.Content ?? "No messages yet")</div>
+                  </div>
+                  @if (unreadCount > 0)
+                  {
+                    <div class="convo-unread-badge">@unreadCount</div>
+                  }
+                </div>
+              </a>
+            }
+          }
+          else
+          {
+            <div style="text-align: center; padding: 24px; color: var(--muted); font-size: 0.85rem;">
+              No active chats.
             </div>
-          </div>
-
-          <!-- Convo 3 — unread -->
-          <div class="convo-item unread" id="convo-sara">
-            <div class="convo-avatar" style="background:var(--sage-mid2)">SC</div>
-            <div class="convo-info">
-              <div class="convo-name-row">
-                <span class="convo-name">Sara Chen</span>
-                <span class="convo-time">1h</span>
-              </div>
-              <div class="convo-preview">Can we collab on something? 🌱</div>
-            </div>
-            <div class="convo-unread-badge">1</div>
-          </div>
-
-          <!-- Convo 4 -->
-          <div class="convo-item" id="convo-tom">
-            <div class="convo-avatar" style="background:var(--muted)">TN</div>
-            <div class="convo-info">
-              <div class="convo-name-row">
-                <span class="convo-name">Tom Nguyen</span>
-                <span class="convo-time">3h</span>
-              </div>
-              <div class="convo-preview">Loved your latest post 🌱</div>
-            </div>
-          </div>
-
-          <!-- Convo 5 -->
-          <div class="convo-item" id="convo-amy">
-            <div class="convo-avatar" style="background:var(--warm-tan);color:var(--text)">AW</div>
-            <div class="convo-info">
-              <div class="convo-name-row">
-                <span class="convo-name">Amy Walsh</span>
-                <span class="convo-time">Yesterday</span>
-              </div>
-              <div class="convo-preview">See you at the meetup!</div>
-            </div>
-          </div>
+          }
 
         </div>
       </div>
 
       <!-- Active chat panel -->
-      <div class="chat-panel">
+      @if (Model.ActiveConversation != null)
+      {
+        var otherUser = Model.ActiveConversation.Participants.FirstOrDefault(p => p.UserProfileId != Model.CurrentProfileId)?.UserProfile;
+        var partnerInitials = "";
+        if (otherUser != null)
+        {
+          if (!string.IsNullOrEmpty(otherUser.FirstName)) partnerInitials += otherUser.FirstName[0];
+          if (!string.IsNullOrEmpty(otherUser.LastName)) partnerInitials += otherUser.LastName[0];
+          partnerInitials = partnerInitials.ToUpper();
+        }
 
-        <div class="chat-header">
-          <div class="chat-header-avatar">ML</div>
-          <div class="chat-header-info">
-            <div class="chat-header-name">Maya Lin</div>
-            <div class="chat-header-status">Online</div>
+        <div class="chat-panel">
+
+          <div class="chat-header">
+            <div class="chat-header-avatar">@partnerInitials</div>
+            <div class="chat-header-info">
+              <div class="chat-header-name">@(otherUser?.FirstName) @(otherUser?.LastName)</div>
+              <div class="chat-header-status">Online</div>
+            </div>
+            <div class="chat-header-actions">
+              <button class="chat-action-btn" title="Search in conversation">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+              </button>
+              <button class="chat-action-btn" title="More options">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                </svg>
+              </button>
+            </div>
           </div>
-          <div class="chat-header-actions">
-            <button class="chat-action-btn" title="Search in conversation">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+
+          <div class="chat-messages">
+
+            @if (Model.Messages != null && Model.Messages.Any())
+            {
+              DateTime? lastDate = null;
+              @foreach (var msg in Model.Messages)
+              {
+                var isSent = msg.SenderProfileId == Model.CurrentProfileId;
+                var senderInitials = "";
+                if (!isSent && msg.Sender != null)
+                {
+                  if (!string.IsNullOrEmpty(msg.Sender.FirstName)) senderInitials += msg.Sender.FirstName[0];
+                  if (!string.IsNullOrEmpty(msg.Sender.LastName)) senderInitials += msg.Sender.LastName[0];
+                  senderInitials = senderInitials.ToUpper();
+                }
+
+                if (lastDate == null || lastDate.Value.Date != msg.CreatedAt.Date)
+                {
+                  lastDate = msg.CreatedAt;
+                  <div class="chat-date-divider">@msg.CreatedAt.ToString("MMMM dd, yyyy")</div>
+                }
+
+                <div class="chat-msg @(isSent ? "sent" : "received")">
+                  @if (!isSent)
+                  {
+                    <div class="chat-msg-avatar">@senderInitials</div>
+                  }
+                  <div class="chat-bubble-wrap">
+                    <div class="chat-bubble">@msg.Content</div>
+                    <div class="chat-msg-time">@msg.CreatedAt.ToString("h:mm tt")</div>
+                  </div>
+                </div>
+              }
+            }
+            else
+            {
+              <div style="text-align: center; padding: 40px; color: var(--muted); margin: auto 0;">
+                <p>Send a message to start the conversation! 🌱</p>
+              </div>
+            }
+
+          </div>
+
+          <form asp-controller="Messages" asp-action="Send" method="post" class="chat-compose">
+            <input type="hidden" name="conversationId" value="@Model.ActiveConversation.Id" />
+            <div class="chat-compose-actions">
+              <button type="button" class="chat-compose-icon" title="Attach image">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </button>
+              <button type="button" class="chat-compose-icon" title="Emoji">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+              </button>
+            </div>
+            <textarea name="content" class="chat-compose-input" placeholder="Send a message…" rows="1" required></textarea>
+            <button type="submit" class="chat-send-btn" title="Send">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
               </svg>
             </button>
-            <button class="chat-action-btn" title="More options">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+          </form>
+
+        </div>
+      }
+      else
+      {
+        <div class="chat-panel">
+          <div class="chat-empty">
+            <div class="chat-empty-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
-            </button>
+            </div>
+            <h3>Your Messages</h3>
+            <p>Select a conversation or start a new one to begin messaging.</p>
           </div>
         </div>
-
-        <div class="chat-messages">
-
-          <div class="chat-date-divider">Today</div>
-
-          <!-- Received -->
-          <div class="chat-msg received">
-            <div class="chat-msg-avatar">ML</div>
-            <div class="chat-bubble-wrap">
-              <div class="chat-bubble">Hey! Did you see that new feature Sprout launched? 🌿</div>
-              <div class="chat-msg-time">10:32 AM</div>
-            </div>
-          </div>
-
-          <!-- Sent -->
-          <div class="chat-msg sent">
-            <div class="chat-bubble-wrap">
-              <div class="chat-bubble">No, what is it? 👀</div>
-              <div class="chat-msg-time">10:33 AM</div>
-            </div>
-          </div>
-
-          <!-- Received -->
-          <div class="chat-msg received">
-            <div class="chat-msg-avatar">ML</div>
-            <div class="chat-bubble-wrap">
-              <div class="chat-bubble">They added story circles! You can post 24-hour updates to your specific circles now</div>
-              <div class="chat-msg-time">10:34 AM</div>
-            </div>
-          </div>
-
-          <!-- Sent -->
-          <div class="chat-msg sent">
-            <div class="chat-bubble-wrap">
-              <div class="chat-bubble">Oh that's really cool! I already noticed the new stories bar on the feed 🌱</div>
-              <div class="chat-msg-time">10:35 AM</div>
-            </div>
-          </div>
-
-          <!-- Received -->
-          <div class="chat-msg received">
-            <div class="chat-msg-avatar">ML</div>
-            <div class="chat-bubble-wrap">
-              <div class="chat-bubble">Yes! I posted my first garden update this morning</div>
-              <div class="chat-msg-time">10:36 AM</div>
-            </div>
-          </div>
-
-          <!-- Sent -->
-          <div class="chat-msg sent">
-            <div class="chat-bubble-wrap">
-              <div class="chat-bubble">I saw it! Loved the monstera pics 💚</div>
-              <div class="chat-msg-time">10:38 AM</div>
-            </div>
-          </div>
-
-          <!-- Received -->
-          <div class="chat-msg received">
-            <div class="chat-msg-avatar">ML</div>
-            <div class="chat-bubble-wrap">
-              <div class="chat-bubble">Thank you 😊 Also loved your last sprout about the herb garden! The photos were gorgeous</div>
-              <div class="chat-msg-time">10:40 AM</div>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="chat-compose">
-          <div class="chat-compose-actions">
-            <button class="chat-compose-icon" title="Attach image">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-              </svg>
-            </button>
-            <button class="chat-compose-icon" title="Emoji">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
-              </svg>
-            </button>
-          </div>
-          <textarea class="chat-compose-input" placeholder="Send a message…" rows="1"></textarea>
-          <button class="chat-send-btn" title="Send">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
-        </div>
-
-      </div>
+      }
 
     </main>
 
@@ -875,28 +866,29 @@
       }
     });
 
-    // Conversation switching — highlight selected, update chat header
-    const convos = document.querySelectorAll('.convo-item');
-    convos.forEach(c => {
-      c.addEventListener('click', () => {
-        convos.forEach(x => x.classList.remove('active'));
-        c.classList.add('active');
-        c.classList.remove('unread');
-        const badge = c.querySelector('.convo-unread-badge');
-        if (badge) badge.remove();
-      });
-    });
-
-    // Auto-resize compose textarea
+    // Auto-resize compose textarea and Enter to Submit
     const composeInput = document.querySelector('.chat-compose-input');
-    composeInput.addEventListener('input', () => {
-      composeInput.style.height = 'auto';
-      composeInput.style.height = Math.min(composeInput.scrollHeight, 120) + 'px';
-    });
+    if (composeInput) {
+      composeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          if (composeInput.value.trim().length > 0) {
+            composeInput.closest('form').submit();
+          }
+        }
+      });
+
+      composeInput.addEventListener('input', () => {
+        composeInput.style.height = 'auto';
+        composeInput.style.height = Math.min(composeInput.scrollHeight, 120) + 'px';
+      });
+    }
 
     // Scroll chat to bottom on load
     const chatMessages = document.querySelector('.chat-messages');
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (chatMessages) {
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
   </script>
 
 </body>

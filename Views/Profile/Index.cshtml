@@ -557,6 +557,7 @@
                     <button type="submit" class="btn-edit-profile" style="background:var(--sage-dk);color:var(--cream);">Follow</button>
                 }
             </form>
+            <a asp-controller="Messages" asp-action="Chat" asp-route-withProfileId="@Model.Id" class="btn-edit-profile" style="text-decoration:none;display:inline-block;padding-top:9px;">Message</a>
           }
           <button class="btn-share" title="Share profile">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
