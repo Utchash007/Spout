@@ -7,10 +7,12 @@ namespace Twit.Services
     public class FollowService : IFollowService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notificationService;
 
-        public FollowService(IUnitOfWork unitOfWork)
+        public FollowService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
         }
 
         public async Task Follow(string followerProfileId, string followingProfileId)
@@ -43,6 +45,13 @@ namespace Twit.Services
                 followerProfile.FollowingCount++;
                 await _unitOfWork.UserProfileRepo.Update(followerProfile);
             }
+
+            // Trigger notification
+            await _notificationService.CreateNotification(
+                NotificationType.Follow,
+                recipientProfileId: followingProfileId,
+                actorProfileId: followerProfileId
+            );
 
             await _unitOfWork.SaveChangesAsync();
         }

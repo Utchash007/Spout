@@ -7,10 +7,12 @@ namespace Twit.Services
     public class LikeService : ILikeService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notificationService;
 
-        public LikeService(IUnitOfWork unitOfWork)
+        public LikeService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
         }
 
         public async Task<bool> ToggleLikePost(string userProfileId, string postId)
@@ -38,6 +40,17 @@ namespace Twit.Services
                 await _unitOfWork.LikeRepo.Add(like);
                 post.LikesCount++;
                 isLiked = true;
+
+                // Trigger notification (only if actor is not the recipient)
+                if (post.UserProfileId != userProfileId)
+                {
+                    await _notificationService.CreateNotification(
+                        NotificationType.Like,
+                        recipientProfileId: post.UserProfileId,
+                        actorProfileId: userProfileId,
+                        postId: postId
+                    );
+                }
             }
             
             await _unitOfWork.PostRepo.Update(post);

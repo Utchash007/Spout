@@ -1,3 +1,4 @@
+@model IEnumerable<Twit.Models.ViewModels.NotificationViewModel>
 @{
     Layout = null;
     ViewData["Title"] = "Notifications";
@@ -430,7 +431,9 @@
       <div class="notif-header">
         <div class="notif-header-row">
           <h2>Notifications</h2>
-          <button class="notif-mark-all">Mark all as read</button>
+          <form asp-controller="Notifications" asp-action="MarkAllAsRead" method="post" style="display:inline;">
+            <button type="submit" class="notif-mark-all">Mark all as read</button>
+          </form>
         </div>
         <div class="notif-tabs">
           <button class="notif-tab active">All</button>
@@ -441,125 +444,69 @@
         </div>
       </div>
 
-      <!-- Notification 1 — unread, like with preview -->
-      <div class="notif-item unread">
-        <div class="notif-icon-wrap">
-          <div class="notif-avatar" style="background:var(--sage-md)">ML</div>
-          <div class="notif-type-icon like">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      @if (Model != null && Model.Any())
+      {
+        @foreach (var notification in Model)
+        {
+          <div class="notif-item @(notification.IsRead ? "" : "unread")" onclick="markAsRead('@notification.Id')">
+            <div class="notif-icon-wrap">
+              <div class="notif-avatar" style="background:var(--sage-md)">@notification.ActorInitials</div>
+              <div class="notif-type-icon @notification.Type.ToLower()">
+                @switch (notification.Type)
+                {
+                  case "Like":
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    break;
+                  case "Follow":
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    break;
+                  case "Repost":
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    break;
+                  case "Comment":
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    break;
+                  case "Mention":
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
+                    break;
+                }
+              </div>
+            </div>
+            <div class="notif-body">
+              <div class="notif-text">
+                <strong>@notification.ActorName</strong>
+                @switch (notification.Type)
+                {
+                  case "Like": <text>liked your Sprout</text>; break;
+                  case "Follow": <text>started following you</text>; break;
+                  case "Repost": <text>reposted your Sprout</text>; break;
+                  case "Comment": <text>commented on your Sprout</text>; break;
+                  case "Mention": <text>mentioned you in a reply</text>; break;
+                }
+              </div>
+              <div class="notif-time">@notification.TimeAgo</div>
+              @if (!string.IsNullOrEmpty(notification.PostContent))
+              {
+                <div class="notif-preview">@notification.PostContent</div>
+              }
+              else if (!string.IsNullOrEmpty(notification.CommentContent))
+              {
+                <div class="notif-preview">@notification.CommentContent</div>
+              }
+            </div>
+            @if (!notification.IsRead)
+            {
+              <div class="notif-unread-dot"></div>
+            }
           </div>
+        }
+      }
+      else
+      {
+        <div style="text-align:center; padding:40px; color:var(--muted);">
+          <p>No notifications yet.</p>
         </div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>Maya Lin</strong> liked your Sprout</div>
-          <div class="notif-time">2 minutes ago</div>
-          <div class="notif-preview">Just planted my first herb garden this spring 🌱 Started with basil, rosemary, and thyme…</div>
-        </div>
-        <div class="notif-unread-dot"></div>
-      </div>
-
-      <!-- Notification 2 — unread, follow -->
-      <div class="notif-item unread">
-        <div class="notif-icon-wrap">
-          <div class="notif-avatar" style="background:var(--sage-dk)">JR</div>
-          <div class="notif-type-icon follow">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          </div>
-        </div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>Jake Rivera</strong> started following you</div>
-          <div class="notif-time">15 minutes ago</div>
-        </div>
-        <div class="notif-unread-dot"></div>
-      </div>
-
-      <!-- Notification 3 — unread, repost -->
-      <div class="notif-item unread">
-        <div class="notif-icon-wrap">
-          <div class="notif-avatar" style="background:var(--sage-mid2)">SC</div>
-          <div class="notif-type-icon repost">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-          </div>
-        </div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>Sara Chen</strong> reposted your Sprout</div>
-          <div class="notif-time">45 minutes ago</div>
-          <div class="notif-preview">Morning hike through the pine forest — the kind of silence that makes you realize how loud everyday life is…</div>
-        </div>
-        <div class="notif-unread-dot"></div>
-      </div>
-
-      <!-- Notification 4 — unread, mention with preview -->
-      <div class="notif-item unread">
-        <div class="notif-icon-wrap">
-          <div class="notif-avatar" style="background:var(--muted)">TN</div>
-          <div class="notif-type-icon mention">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
-          </div>
-        </div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>Tom Nguyen</strong> mentioned you in a reply</div>
-          <div class="notif-time">1 hour ago</div>
-          <div class="notif-preview">@@emmagreen this composting method is exactly what you were asking about! 🌿</div>
-        </div>
-        <div class="notif-unread-dot"></div>
-      </div>
-
-      <!-- Notification 5 — read, comment -->
-      <div class="notif-item">
-        <div class="notif-icon-wrap">
-          <div class="notif-avatar" style="background:var(--warm-tan);color:var(--text)">AW</div>
-          <div class="notif-type-icon comment">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </div>
-        </div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>Amy Walsh</strong> commented on your Sprout</div>
-          <div class="notif-time">3 hours ago</div>
-          <div class="notif-preview">This is amazing! Indoor plants really are underrated therapy. Keep it up 🌿</div>
-        </div>
-      </div>
-
-      <!-- Notification 6 — read, like -->
-      <div class="notif-item">
-        <div class="notif-icon-wrap">
-          <div class="notif-avatar" style="background:var(--sage-xdk)">DP</div>
-          <div class="notif-type-icon like">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </div>
-        </div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>Dan Park</strong> liked your reply</div>
-          <div class="notif-time">5 hours ago</div>
-        </div>
-      </div>
-
-      <!-- Notification 7 — read, follow -->
-      <div class="notif-item">
-        <div class="notif-icon-wrap">
-          <div class="notif-avatar" style="background:var(--sage-lt);color:var(--sage-xdk)">LM</div>
-          <div class="notif-type-icon follow">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          </div>
-        </div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>Lily Marsh</strong> started following you</div>
-          <div class="notif-time">8 hours ago</div>
-        </div>
-      </div>
-
-      <!-- Notification 8 — read, like -->
-      <div class="notif-item">
-        <div class="notif-icon-wrap">
-          <div class="notif-avatar" style="background:var(--sage-dk)">JR</div>
-          <div class="notif-type-icon like">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </div>
-        </div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>Jake Rivera</strong> liked your Sprout</div>
-          <div class="notif-time">Yesterday</div>
-        </div>
-      </div>
+      }
 
     </main>
 
@@ -601,11 +548,20 @@
       });
     });
 
-    // Mark all as read
-    document.querySelector('.notif-mark-all').addEventListener('click', () => {
-      document.querySelectorAll('.notif-item.unread').forEach(item => item.classList.remove('unread'));
-      document.querySelectorAll('.notif-unread-dot').forEach(dot => dot.remove());
-    });
+    function markAsRead(id) {
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = '@Url.Action("MarkAsRead", "Notifications")';
+      
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'notificationId';
+      input.value = id;
+      
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    }
   </script>
 
 </body>

@@ -8,10 +8,12 @@ namespace Twit.Services
     public class CommentService : ICommentService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notificationService;
 
-        public CommentService(IUnitOfWork unitOfWork)
+        public CommentService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
         }
 
         public async Task<Comment> CreateComment(string userProfileId, string postId, string content, string? parentCommentId = null)
@@ -28,6 +30,20 @@ namespace Twit.Services
             };
 
             await _unitOfWork.CommentRepo.Add(comment);
+
+            // Trigger notification
+            var post = await _unitOfWork.PostRepo.Get(postId);
+            if (post != null && post.UserProfileId != userProfileId)
+            {
+                await _notificationService.CreateNotification(
+                    NotificationType.Comment,
+                    recipientProfileId: post.UserProfileId,
+                    actorProfileId: userProfileId,
+                    postId: postId,
+                    commentId: comment.Id
+                );
+            }
+
             await _unitOfWork.SaveChangesAsync();
             return comment;
         }

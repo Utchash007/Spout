@@ -8,10 +8,12 @@ namespace Twit.Services
     public class PostService : IPostService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notificationService;
 
-        public PostService(IUnitOfWork unitOfWork)
+        public PostService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
         }
 
         public async Task<Post> CreatePost(string userProfileId, string content)
@@ -55,6 +57,17 @@ namespace Twit.Services
 
             originalPost.RepostCount++;
             await _unitOfWork.PostRepo.Update(originalPost);
+
+            // Trigger notification
+            if (originalPost.UserProfileId != userProfileId)
+            {
+                await _notificationService.CreateNotification(
+                    NotificationType.Repost,
+                    recipientProfileId: originalPost.UserProfileId,
+                    actorProfileId: userProfileId,
+                    postId: parentPostId
+                );
+            }
             
             await _unitOfWork.SaveChangesAsync();
             return repost;
