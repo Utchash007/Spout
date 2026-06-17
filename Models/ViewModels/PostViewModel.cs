@@ -17,5 +17,6 @@ namespace Twit.Models.ViewModels
         public int CommentCount { get; set; }
         public bool IsLikedByCurrentUser { get; set; }
         public bool IsOwnedByCurrentUser { get; set; }
+        public bool IsBookmarkedByCurrentUser { get; set; }
     }
 }

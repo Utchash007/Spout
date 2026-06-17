@@ -57,31 +57,6 @@ public class HomeController : Controller
         var profileId = await GetCurrentUserProfileId();
         var posts = await _postService.FetchPosts(profileId);
 
-        if (profileId != null)
-        {
-            var followingIds = await _unitOfWork.FollowRepo.GetAll()
-                .Where(f => f.FollowerId == profileId)
-                .Select(f => f.FollowingId)
-                .ToListAsync();
-
-            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll()
-                .Include(up => up.User)
-                .Where(up => up.Id != profileId && !followingIds.Contains(up.Id))
-                .Take(3)
-                .ToListAsync();
-
-            ViewBag.SuggestedUsers = suggestedUsers;
-        }
-        else
-        {
-            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll()
-                .Include(up => up.User)
-                .Take(3)
-                .ToListAsync();
-
-            ViewBag.SuggestedUsers = suggestedUsers;
-        }
-
         var model = new HomeFeedViewModel
         {
             Posts = posts,

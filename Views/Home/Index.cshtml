@@ -986,11 +986,14 @@
                 @post.RepostCount
               </button>
             </form>
-            <button class="post-action post-action--push">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-              </svg>
-            </button>
+            <form asp-controller="Bookmark" asp-action="Toggle" method="post" style="display:inline; margin-left:auto;">
+              <input type="hidden" name="postId" value="@post.Id" />
+              <button type="submit" class="post-action @(post.IsBookmarkedByCurrentUser ? "bookmarked" : "")" title="Bookmark post">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="@(post.IsBookmarkedByCurrentUser ? "currentColor" : "none")" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
+            </form>
           </div>
 
           <!-- Inline comment section (hidden by default) -->

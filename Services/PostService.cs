@@ -102,7 +102,9 @@ namespace Twit.Services
                     CommentCount = _unitOfWork.CommentRepo.GetAll().Count(c => c.PostId == p.Id),
                     IsLikedByCurrentUser = userProfileId != null && 
                         _unitOfWork.LikeRepo.GetAll().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
-                    IsOwnedByCurrentUser = userProfileId != null && p.UserProfileId == userProfileId
+                    IsOwnedByCurrentUser = userProfileId != null && p.UserProfileId == userProfileId,
+                    IsBookmarkedByCurrentUser = userProfileId != null && 
+                        _unitOfWork.BookmarkRepo.GetAll().Any(b => b.UserProfileId == userProfileId && b.PostId == p.Id)
                 };
             });
         }

@@ -1,3 +1,21 @@
+@inject Twit.Services.ISidebarService SidebarService
+@inject Twit.UnitOfWork.IUnitOfWork UnitOfWork
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@{
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    string? profileId = null;
+    if (userId != null)
+    {
+        var profile = await UnitOfWork.UserProfileRepo.GetAll()
+            .FirstOrDefaultAsync(p => p.UserId == userId);
+        profileId = profile?.Id;
+    }
+
+    var trendingTags = await SidebarService.GetTrendingTags(5);
+    var suggestedUsers = await SidebarService.GetSuggestedUsers(profileId ?? "", 3);
+}
+
 <!-- Right sidebar -->
 <aside class="sidebar-right">
 
@@ -9,39 +27,28 @@
 
   <div class="widget">
     <h3>Trending on Sprout</h3>
-    <div class="trend-item">
-      <div class="trend-category">Nature · Trending</div>
-      <div class="trend-tag">#SpringGarden</div>
-      <div class="trend-count">12.4K sprouts</div>
-    </div>
-    <div class="trend-item">
-      <div class="trend-category">Lifestyle</div>
-      <div class="trend-tag">#PlantMom</div>
-      <div class="trend-count">8.9K sprouts</div>
-    </div>
-    <div class="trend-item">
-      <div class="trend-category">Environment · Hot</div>
-      <div class="trend-tag">#EcoWarrior</div>
-      <div class="trend-count">5.2K sprouts</div>
-    </div>
-    <div class="trend-item">
-      <div class="trend-category">Wellness</div>
-      <div class="trend-tag">#MindfulLiving</div>
-      <div class="trend-count">3.7K sprouts</div>
-    </div>
-    <div class="trend-item">
-      <div class="trend-category">Outdoors</div>
-      <div class="trend-tag">#TrailLife</div>
-      <div class="trend-count">2.1K sprouts</div>
-    </div>
-    <div class="widget-footer">Show more trends →</div>
+    @if (trendingTags != null && trendingTags.Any())
+    {
+        @foreach (var tag in trendingTags)
+        {
+            <div class="trend-item" onclick="location.href='@Url.Action("Index", "Search", new { query = "#" + tag.Tag })'">
+                <div class="trend-category">Trending</div>
+                <div class="trend-tag">#@tag.Tag</div>
+                <div class="trend-count">@tag.Count sprouts</div>
+            </div>
+        }
+    }
+    else
+    {
+        <p style="font-size:0.85rem;color:var(--muted);text-align:center;padding:10px 0;">No active trends.</p>
+    }
   </div>
 
   <div class="widget">
     <h3>Who to Follow</h3>
-    @if (ViewBag.SuggestedUsers != null && ((IEnumerable<Twit.Models.UserProfile>)ViewBag.SuggestedUsers).Any())
+    @if (suggestedUsers != null && suggestedUsers.Any())
     {
-        @foreach (var user in (IEnumerable<Twit.Models.UserProfile>)ViewBag.SuggestedUsers)
+        @foreach (var user in suggestedUsers)
         {
             var initials = (user.FirstName.Length > 0 ? user.FirstName[0].ToString() : "") 
                          + (user.LastName.Length > 0 ? user.LastName[0].ToString() : "");
@@ -57,7 +64,7 @@
                 </form>
             </div>
         }
-        <div class="widget-footer">Discover more people →</div>
+        <div class="widget-footer" onclick="location.href='@Url.Action("Index", "Explore")'">Discover more people →</div>
     }
     else
     {
