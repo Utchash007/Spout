@@ -55,7 +55,11 @@ public class MessagesController : Controller
     {
         var profileId = await GetCurrentUserProfileId();
         if (profileId == null)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Unauthorized();
             return RedirectToAction("LoginPage", "Login");
+        }
 
         Conversation? conversation = null;
 
@@ -77,6 +81,8 @@ public class MessagesController : Controller
         }
         else
         {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return BadRequest("Conversation ID or Profile ID is required.");
             return RedirectToAction("Index");
         }
 
@@ -85,6 +91,58 @@ public class MessagesController : Controller
 
         var messages = await _messageService.GetMessages(conversationId);
         await _messageService.MarkAsRead(conversationId, profileId);
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            var otherUser = conversation.Participants.FirstOrDefault(p => p.UserProfileId != profileId)?.UserProfile;
+            var partnerInitials = "";
+            if (otherUser != null)
+            {
+                if (!string.IsNullOrEmpty(otherUser.FirstName)) partnerInitials += otherUser.FirstName[0];
+                if (!string.IsNullOrEmpty(otherUser.LastName)) partnerInitials += otherUser.LastName[0];
+                partnerInitials = partnerInitials.ToUpper();
+            }
+
+            var jsonMessages = new List<object>();
+            DateTime? lastDate = null;
+            foreach (var msg in messages)
+            {
+                var isSent = msg.SenderProfileId == profileId;
+                var senderInitials = "";
+                if (!isSent && msg.Sender != null)
+                {
+                    if (!string.IsNullOrEmpty(msg.Sender.FirstName)) senderInitials += msg.Sender.FirstName[0];
+                    if (!string.IsNullOrEmpty(msg.Sender.LastName)) senderInitials += msg.Sender.LastName[0];
+                    senderInitials = senderInitials.ToUpper();
+                }
+
+                string? dateDividerText = null;
+                if (lastDate == null || lastDate.Value.Date != msg.CreatedAt.Date)
+                {
+                    lastDate = msg.CreatedAt;
+                    dateDividerText = msg.CreatedAt.ToString("MMMM dd, yyyy");
+                }
+
+                jsonMessages.Add(new
+                {
+                    id = msg.Id,
+                    content = msg.Content,
+                    createdAtFormatted = msg.CreatedAt.ToString("h:mm tt"),
+                    dateDivider = dateDividerText,
+                    isSent = isSent,
+                    senderInitials = senderInitials
+                });
+            }
+
+            return Json(new
+            {
+                conversationId = conversation.Id,
+                currentProfileId = profileId,
+                partnerName = otherUser != null ? $"{otherUser.FirstName} {otherUser.LastName}" : "Unknown User",
+                partnerInitials = partnerInitials,
+                messages = jsonMessages
+            });
+        }
 
         var conversations = await _messageService.GetConversations(profileId);
 
@@ -104,9 +162,25 @@ public class MessagesController : Controller
     {
         var profileId = await GetCurrentUserProfileId();
         if (profileId == null || string.IsNullOrWhiteSpace(content))
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return BadRequest("Invalid message content");
             return RedirectToAction("Index");
+        }
 
-        await _messageService.SendMessage(conversationId, profileId, content);
+        var message = await _messageService.SendMessage(conversationId, profileId, content);
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return Json(new
+            {
+                id = message.Id,
+                content = message.Content,
+                createdAtFormatted = message.CreatedAt.ToString("h:mm tt"),
+                isSent = true
+            });
+        }
+
         return RedirectToAction("Chat", new { conversationId });
     }
 }

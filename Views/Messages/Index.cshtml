@@ -718,121 +718,123 @@
         </div>
       </div>
 
-      <!-- Active chat panel -->
-      @if (Model.ActiveConversation != null)
-      {
-        var otherUser = Model.ActiveConversation.Participants.FirstOrDefault(p => p.UserProfileId != Model.CurrentProfileId)?.UserProfile;
-        var partnerInitials = "";
-        if (otherUser != null)
+      <!-- Active chat panel wrapper -->
+      <div id="chatPanelContainer" style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+        @if (Model.ActiveConversation != null)
         {
-          if (!string.IsNullOrEmpty(otherUser.FirstName)) partnerInitials += otherUser.FirstName[0];
-          if (!string.IsNullOrEmpty(otherUser.LastName)) partnerInitials += otherUser.LastName[0];
-          partnerInitials = partnerInitials.ToUpper();
-        }
+          var otherUser = Model.ActiveConversation.Participants.FirstOrDefault(p => p.UserProfileId != Model.CurrentProfileId)?.UserProfile;
+          var partnerInitials = "";
+          if (otherUser != null)
+          {
+            if (!string.IsNullOrEmpty(otherUser.FirstName)) partnerInitials += otherUser.FirstName[0];
+            if (!string.IsNullOrEmpty(otherUser.LastName)) partnerInitials += otherUser.LastName[0];
+            partnerInitials = partnerInitials.ToUpper();
+          }
 
-        <div class="chat-panel">
+          <div class="chat-panel">
 
-          <div class="chat-header">
-            <div class="chat-header-avatar">@partnerInitials</div>
-            <div class="chat-header-info">
-              <div class="chat-header-name">@(otherUser?.FirstName) @(otherUser?.LastName)</div>
-              <div class="chat-header-status">Online</div>
+            <div class="chat-header">
+              <div class="chat-header-avatar">@partnerInitials</div>
+              <div class="chat-header-info">
+                <div class="chat-header-name">@(otherUser?.FirstName) @(otherUser?.LastName)</div>
+                <div class="chat-header-status">Online</div>
+              </div>
+              <div class="chat-header-actions">
+                <button class="chat-action-btn" title="Search in conversation">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </button>
+                <button class="chat-action-btn" title="More options">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div class="chat-header-actions">
-              <button class="chat-action-btn" title="Search in conversation">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                </svg>
-              </button>
-              <button class="chat-action-btn" title="More options">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                </svg>
-              </button>
-            </div>
-          </div>
 
-          <div class="chat-messages">
+            <div class="chat-messages">
 
-            @if (Model.Messages != null && Model.Messages.Any())
-            {
-              DateTime? lastDate = null;
-              @foreach (var msg in Model.Messages)
+              @if (Model.Messages != null && Model.Messages.Any())
               {
-                var isSent = msg.SenderProfileId == Model.CurrentProfileId;
-                var senderInitials = "";
-                if (!isSent && msg.Sender != null)
+                DateTime? lastDate = null;
+                @foreach (var msg in Model.Messages)
                 {
-                  if (!string.IsNullOrEmpty(msg.Sender.FirstName)) senderInitials += msg.Sender.FirstName[0];
-                  if (!string.IsNullOrEmpty(msg.Sender.LastName)) senderInitials += msg.Sender.LastName[0];
-                  senderInitials = senderInitials.ToUpper();
-                }
-
-                if (lastDate == null || lastDate.Value.Date != msg.CreatedAt.Date)
-                {
-                  lastDate = msg.CreatedAt;
-                  <div class="chat-date-divider">@msg.CreatedAt.ToString("MMMM dd, yyyy")</div>
-                }
-
-                <div class="chat-msg @(isSent ? "sent" : "received")">
-                  @if (!isSent)
+                  var isSent = msg.SenderProfileId == Model.CurrentProfileId;
+                  var senderInitials = "";
+                  if (!isSent && msg.Sender != null)
                   {
-                    <div class="chat-msg-avatar">@senderInitials</div>
+                    if (!string.IsNullOrEmpty(msg.Sender.FirstName)) senderInitials += msg.Sender.FirstName[0];
+                    if (!string.IsNullOrEmpty(msg.Sender.LastName)) senderInitials += msg.Sender.LastName[0];
+                    senderInitials = senderInitials.ToUpper();
                   }
-                  <div class="chat-bubble-wrap">
-                    <div class="chat-bubble">@msg.Content</div>
-                    <div class="chat-msg-time">@msg.CreatedAt.ToString("h:mm tt")</div>
+
+                  if (lastDate == null || lastDate.Value.Date != msg.CreatedAt.Date)
+                  {
+                    lastDate = msg.CreatedAt;
+                    <div class="chat-date-divider">@msg.CreatedAt.ToString("MMMM dd, yyyy")</div>
+                  }
+
+                  <div class="chat-msg @(isSent ? "sent" : "received")">
+                    @if (!isSent)
+                    {
+                      <div class="chat-msg-avatar">@senderInitials</div>
+                    }
+                    <div class="chat-bubble-wrap">
+                      <div class="chat-bubble">@msg.Content</div>
+                      <div class="chat-msg-time">@msg.CreatedAt.ToString("h:mm tt")</div>
+                    </div>
                   </div>
+                }
+              }
+              else
+              {
+                <div style="text-align: center; padding: 40px; color: var(--muted); margin: auto 0;">
+                  <p>Send a message to start the conversation! 🌱</p>
                 </div>
               }
-            }
-            else
-            {
-              <div style="text-align: center; padding: 40px; color: var(--muted); margin: auto 0;">
-                <p>Send a message to start the conversation! 🌱</p>
+
+            </div>
+
+            <form action="/Messages/Send" method="post" class="chat-compose">
+              <input type="hidden" name="conversationId" value="@Model.ActiveConversation.Id" />
+              <div class="chat-compose-actions">
+                <button type="button" class="chat-compose-icon" title="Attach image">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                </button>
+                <button type="button" class="chat-compose-icon" title="Emoji">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                  </svg>
+                </button>
               </div>
-            }
-
-          </div>
-
-          <form asp-controller="Messages" asp-action="Send" method="post" class="chat-compose">
-            <input type="hidden" name="conversationId" value="@Model.ActiveConversation.Id" />
-            <div class="chat-compose-actions">
-              <button type="button" class="chat-compose-icon" title="Attach image">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              <textarea name="content" class="chat-compose-input" placeholder="Send a message…" rows="1" required></textarea>
+              <button type="submit" class="chat-send-btn" title="Send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
               </button>
-              <button type="button" class="chat-compose-icon" title="Emoji">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
-                </svg>
-              </button>
-            </div>
-            <textarea name="content" class="chat-compose-input" placeholder="Send a message…" rows="1" required></textarea>
-            <button type="submit" class="chat-send-btn" title="Send">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </button>
-          </form>
+            </form>
 
-        </div>
-      }
-      else
-      {
-        <div class="chat-panel">
-          <div class="chat-empty">
-            <div class="chat-empty-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-            </div>
-            <h3>Your Messages</h3>
-            <p>Select a conversation or start a new one to begin messaging.</p>
           </div>
-        </div>
-      }
+        }
+        else
+        {
+          <div class="chat-panel">
+            <div class="chat-empty">
+              <div class="chat-empty-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <h3>Your Messages</h3>
+              <p>Select a conversation or start a new one to begin messaging.</p>
+            </div>
+          </div>
+        }
+      </div>
 
     </main>
 
@@ -866,29 +868,319 @@
       }
     });
 
-    // Auto-resize compose textarea and Enter to Submit
-    const composeInput = document.querySelector('.chat-compose-input');
-    if (composeInput) {
-      composeInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+    // ── AJAX and History API Messaging Implementation ──
+
+    const currentProfileId = '@Model.CurrentProfileId';
+
+    // Intercept clicks on conversation list items (event delegation)
+    const convoList = document.querySelector('.convo-list');
+    if (convoList) {
+      convoList.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link && link.getAttribute('href').includes('/Messages/Chat')) {
           e.preventDefault();
-          if (composeInput.value.trim().length > 0) {
-            composeInput.closest('form').submit();
+          const href = link.getAttribute('href');
+          const urlObj = new URL(href, window.location.origin);
+          const conversationId = urlObj.searchParams.get('conversationId');
+          if (conversationId) {
+            loadConversation(conversationId);
           }
         }
       });
+    }
 
-      composeInput.addEventListener('input', () => {
-        composeInput.style.height = 'auto';
-        composeInput.style.height = Math.min(composeInput.scrollHeight, 120) + 'px';
+    // Listen to browser Back/Forward navigation
+    window.addEventListener('popstate', (e) => {
+      const urlObj = new URL(window.location.href);
+      const conversationId = urlObj.searchParams.get('conversationId');
+      if (conversationId) {
+        loadConversation(conversationId, false);
+      } else {
+        showEmptyState();
+      }
+    });
+
+    // Fetch conversation data and update URL without reloading
+    async function loadConversation(conversationId, pushToHistory = true) {
+      try {
+        // Optimistically set active classes
+        const prevActive = document.querySelector('.convo-item.active');
+        if (prevActive) prevActive.classList.remove('active');
+
+        const currentItem = document.getElementById('convo-' + conversationId);
+        if (currentItem) {
+          currentItem.classList.add('active');
+          currentItem.classList.remove('unread');
+          const badge = currentItem.querySelector('.convo-unread-badge');
+          if (badge) badge.remove();
+        }
+
+        const response = await fetch('/Messages/Chat?conversationId=' + conversationId, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load conversation');
+        }
+
+        const data = await response.json();
+
+        if (pushToHistory) {
+          const newUrl = '/Messages/Chat?conversationId=' + conversationId;
+          history.pushState({ conversationId: conversationId }, '', newUrl);
+        }
+
+        renderChatPanel(data);
+      } catch (err) {
+        console.error(err);
+        // Fallback to traditional redirect if AJAX fetch fails
+        if (pushToHistory) {
+          window.location.href = '/Messages/Chat?conversationId=' + conversationId;
+        }
+      }
+    }
+
+    // Render the chat panel with partner details and message bubbles
+    function renderChatPanel(data) {
+      const container = document.getElementById('chatPanelContainer');
+      if (!container) return;
+
+      let messagesHtml = '';
+      if (data.messages && data.messages.length > 0) {
+        data.messages.forEach(msg => {
+          if (msg.dateDivider) {
+            messagesHtml += `<div class="chat-date-divider">${msg.dateDivider}</div>`;
+          }
+
+          const isSent = msg.isSent;
+          messagesHtml += `
+            <div class="chat-msg ${isSent ? 'sent' : 'received'}">
+              ${!isSent ? `<div class="chat-msg-avatar">${data.partnerInitials}</div>` : ''}
+              <div class="chat-bubble-wrap">
+                <div class="chat-bubble">${escapeHtml(msg.content)}</div>
+                <div class="chat-msg-time">${msg.createdAtFormatted}</div>
+              </div>
+            </div>
+          `;
+        });
+      } else {
+        messagesHtml = `
+          <div style="text-align: center; padding: 40px; color: var(--muted); margin: auto 0;">
+            <p>Send a message to start the conversation! 🌱</p>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="chat-panel">
+          <div class="chat-header">
+            <div class="chat-header-avatar">${data.partnerInitials}</div>
+            <div class="chat-header-info">
+              <div class="chat-header-name">${escapeHtml(data.partnerName)}</div>
+              <div class="chat-header-status">Online</div>
+            </div>
+            <div class="chat-header-actions">
+              <button class="chat-action-btn" title="Search in conversation">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+              </button>
+              <button class="chat-action-btn" title="More options">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="chat-messages">
+            ${messagesHtml}
+          </div>
+
+          <form action="/Messages/Send" method="post" class="chat-compose">
+            <input type="hidden" name="conversationId" value="${data.conversationId}" />
+            <div class="chat-compose-actions">
+              <button type="button" class="chat-compose-icon" title="Attach image">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </button>
+              <button type="button" class="chat-compose-icon" title="Emoji">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+              </button>
+            </div>
+            <textarea name="content" class="chat-compose-input" placeholder="Send a message…" rows="1" required></textarea>
+            <button type="submit" class="chat-send-btn" title="Send">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </form>
+        </div>
+      `;
+
+      setupComposeForm(container.querySelector('.chat-compose'));
+    }
+
+    // Restore empty state panel when no conversation is active
+    function showEmptyState() {
+      const prevActive = document.querySelector('.convo-item.active');
+      if (prevActive) prevActive.classList.remove('active');
+
+      const container = document.getElementById('chatPanelContainer');
+      if (container) {
+        container.innerHTML = `
+          <div class="chat-panel">
+            <div class="chat-empty">
+              <div class="chat-empty-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <h3>Your Messages</h3>
+              <p>Select a conversation or start a new one to begin messaging.</p>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Set up auto-resize, key listeners, and AJAX submit on the compose form
+    function setupComposeForm(form) {
+      if (!form) return;
+
+      const composeInput = form.querySelector('.chat-compose-input');
+      if (composeInput) {
+        composeInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (composeInput.value.trim().length > 0) {
+              submitMessage(form);
+            }
+          }
+        });
+
+        composeInput.addEventListener('input', () => {
+          composeInput.style.height = 'auto';
+          composeInput.style.height = Math.min(composeInput.scrollHeight, 120) + 'px';
+        });
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitMessage(form);
       });
     }
 
-    // Scroll chat to bottom on load
+    // Submit message via AJAX POST
+    async function submitMessage(form) {
+      const input = form.querySelector('.chat-compose-input');
+      const conversationId = form.querySelector('input[name="conversationId"]').value;
+      const content = input.value.trim();
+
+      if (!content) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      try {
+        const formData = new FormData();
+        formData.append('conversationId', conversationId);
+        formData.append('content', content);
+
+        const response = await fetch('/Messages/Send', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
+
+        const newMsg = await response.json();
+        appendMessage(newMsg);
+        updateConversationPreview(conversationId, content);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to send message. Please try again.');
+        input.value = content;
+      }
+    }
+
+    // Append newly sent message bubble to DOM
+    function appendMessage(msg) {
+      const chatMessages = document.querySelector('.chat-messages');
+      if (!chatMessages) return;
+
+      const emptyMsgDiv = chatMessages.querySelector('p');
+      if (emptyMsgDiv && emptyMsgDiv.textContent.includes('Send a message to start')) {
+        chatMessages.innerHTML = '';
+      }
+
+      const isSent = msg.isSent;
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-msg ${isSent ? 'sent' : 'received'}`;
+
+      let partnerInitials = '';
+      if (!isSent) {
+        const headerAvatar = document.querySelector('.chat-header-avatar');
+        partnerInitials = headerAvatar ? headerAvatar.textContent : '';
+      }
+
+      msgDiv.innerHTML = `
+        ${!isSent ? `<div class="chat-msg-avatar">${partnerInitials}</div>` : ''}
+        <div class="chat-bubble-wrap">
+          <div class="chat-bubble">${escapeHtml(msg.content)}</div>
+          <div class="chat-msg-time">${msg.createdAtFormatted}</div>
+        </div>
+      `;
+
+      chatMessages.appendChild(msgDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Dynamically update left sidebar previews
+    function updateConversationPreview(conversationId, content) {
+      const convoItem = document.getElementById('convo-' + conversationId);
+      if (convoItem) {
+        const previewEl = convoItem.querySelector('.convo-preview');
+        if (previewEl) previewEl.textContent = content;
+
+        const timeEl = convoItem.querySelector('.convo-time');
+        if (timeEl) timeEl.textContent = 'now';
+
+        const convoList = convoItem.closest('.convo-list');
+        const linkAnchor = convoItem.closest('a');
+        if (convoList && linkAnchor) {
+          convoList.insertBefore(linkAnchor, convoList.firstElementChild);
+        }
+      }
+    }
+
+    // HTML escape utility
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Scroll chat to bottom on load and set up the active compose form
     const chatMessages = document.querySelector('.chat-messages');
     if (chatMessages) {
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+    setupComposeForm(document.querySelector('.chat-compose'));
   </script>
 
 </body>
