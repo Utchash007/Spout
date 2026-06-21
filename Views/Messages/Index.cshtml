@@ -633,6 +633,48 @@
       .sidebar-left { display: none; }
       .convo-panel { width: 220px; }
     }
+
+    /* ── Typing Indicator ── */
+    .typing-bubble {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 16px;
+      background: var(--white);
+      border: var(--border-thin);
+      border-bottom-left-radius: 4px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--sage-md);
+      animation: typingBounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @@keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── Connection Status Banner ── */
+    .connection-banner {
+      padding: 6px 16px;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: #fff3cd;
+      color: #856404;
+      border-bottom: 1px solid #ffc107;
+      display: none;
+    }
+
+    .connection-banner.show { display: block; }
+    .connection-banner.connected { background: #d4edda; color: #155724; border-color: #28a745; }
   </style>
 </head>
 <body>
@@ -682,9 +724,12 @@
               var unreadCount = convo.Messages.Count(m => !m.IsRead && m.SenderProfileId != Model.CurrentProfileId);
 
               <a href="@Url.Action("Chat", "Messages", new { conversationId = convo.Id })" style="text-decoration: none; color: inherit;">
-                <div class="convo-item @(isSelected ? "active" : "") @(unreadCount > 0 ? "unread" : "")" id="convo-@convo.Id">
+                <div class="convo-item @(isSelected ? "active" : "") @(unreadCount > 0 ? "unread" : "")"
+                     id="convo-@convo.Id"
+                     data-participant-id="@(otherParticipant?.Id ?? "")">
                   <div class="convo-avatar" style="background:var(--sage-md)">
                     @initials
+                    <div class="online-dot" style="display: none;"></div>
                   </div>
                   <div class="convo-info">
                     <div class="convo-name-row">
@@ -731,13 +776,17 @@
             partnerInitials = partnerInitials.ToUpper();
           }
 
-          <div class="chat-panel">
+          <div class="chat-panel"
+               data-partner-profile-id="@(otherUser?.Id ?? "")"
+               data-participant-ids="@(string.Join(",", Model.ActiveConversation.Participants.Select(p => p.UserProfileId)))">
+
+            <div class="connection-banner" id="connectionBanner">Reconnecting to chat...</div>
 
             <div class="chat-header">
               <div class="chat-header-avatar">@partnerInitials</div>
               <div class="chat-header-info">
                 <div class="chat-header-name">@(otherUser?.FirstName) @(otherUser?.LastName)</div>
-                <div class="chat-header-status">Online</div>
+                <div class="chat-header-status">Offline</div>
               </div>
               <div class="chat-header-actions">
                 <button class="chat-action-btn" title="Search in conversation">
@@ -775,14 +824,14 @@
                     <div class="chat-date-divider">@msg.CreatedAt.ToString("MMMM dd, yyyy")</div>
                   }
 
-                  <div class="chat-msg @(isSent ? "sent" : "received")">
+                  <div class="chat-msg @(isSent ? "sent" : "received")" data-message-id="@msg.Id">
                     @if (!isSent)
                     {
                       <div class="chat-msg-avatar">@senderInitials</div>
                     }
                     <div class="chat-bubble-wrap">
                       <div class="chat-bubble">@msg.Content</div>
-                      <div class="chat-msg-time">@msg.CreatedAt.ToString("h:mm tt")</div>
+                      <div class="chat-msg-time">@msg.CreatedAt.ToString("h:mm tt")@(isSent && msg.IsRead ? " ✓✓" : "")</div>
                     </div>
                   </div>
                 }
@@ -796,8 +845,7 @@
 
             </div>
 
-            <form action="/Messages/Send" method="post" class="chat-compose">
-              <input type="hidden" name="conversationId" value="@Model.ActiveConversation.Id" />
+            <div class="chat-compose">
               <div class="chat-compose-actions">
                 <button type="button" class="chat-compose-icon" title="Attach image">
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -810,13 +858,13 @@
                   </svg>
                 </button>
               </div>
-              <textarea name="content" class="chat-compose-input" placeholder="Send a message…" rows="1" required></textarea>
-              <button type="submit" class="chat-send-btn" title="Send">
+              <textarea class="chat-compose-input" placeholder="Send a message…" rows="1"></textarea>
+              <button type="button" class="chat-send-btn" title="Send">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
               </button>
-            </form>
+            </div>
 
           </div>
         }
@@ -841,6 +889,9 @@
     @await Html.PartialAsync("_SidebarRight")
 
   </div>
+
+  <!-- SignalR Client Library (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 
   <script>
     // Sidebar toggle
@@ -868,11 +919,134 @@
       }
     });
 
-    // ── AJAX and History API Messaging Implementation ──
+    // ── SignalR and AJAX Messaging Implementation ──
 
     const currentProfileId = '@Model.CurrentProfileId';
+    let activeConversationId = '@(Model.ActiveConversation?.Id ?? "")';
 
-    // Intercept clicks on conversation list items (event delegation)
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/chatHub")
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000]) // retry intervals in ms
+        .configureLogging(signalR.LogLevel.Warning)
+        .build();
+
+    // ── Receive a new message ──
+    connection.on("ReceiveMessage", (msg) => {
+        // If this message belongs to the currently active conversation, append it
+        if (msg.conversationId === activeConversationId) {
+            appendMessageBubble(msg);
+            // Mark as read since user is viewing this conversation
+            if (msg.senderProfileId !== currentProfileId) {
+                connection.invoke("MarkConversationRead", activeConversationId)
+                    .catch(err => console.error("Error marking read:", err));
+            }
+        }
+
+        // Update conversation list preview (left panel)
+        updateConversationPreview(msg);
+    });
+
+    // ── Typing indicator ──
+    connection.on("UserTyping", (conversationId, profileId) => {
+        if (conversationId === activeConversationId && profileId !== currentProfileId) {
+            showTypingIndicator();
+        }
+    });
+
+    // ── Online/Offline status ──
+    connection.on("UserOnline", (profileId) => {
+        updateUserStatus(profileId, true);
+    });
+
+    connection.on("UserOffline", (profileId) => {
+        updateUserStatus(profileId, false);
+    });
+
+    // ── Read receipts ──
+    connection.on("MessagesRead", (conversationId, readerProfileId) => {
+        if (conversationId === activeConversationId && readerProfileId !== currentProfileId) {
+            markMessagesAsRead();
+        }
+    });
+
+    // ── Start connection ──
+    async function startConnection() {
+        try {
+            await connection.start();
+            console.log("SignalR connected");
+            hideConnectionBanner();
+
+            // Check online status of conversation participants
+            if (activeConversationId) {
+                const participantIds = getParticipantIds();
+                if (participantIds.length > 0) {
+                    const onlineUsers = await connection.invoke("GetOnlineUsers", participantIds);
+                    // Reset all other participants in active convo to offline first, then set online ones
+                    participantIds.forEach(id => {
+                        if (id !== currentProfileId) {
+                            updateUserStatus(id, onlineUsers.includes(id));
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("SignalR connection error:", err);
+            showConnectionBanner("Connection lost. Retrying...");
+            setTimeout(startConnection, 5000);
+        }
+    }
+
+    connection.onreconnecting(() => {
+        console.log("SignalR reconnecting...");
+        showConnectionBanner("Reconnecting to chat...");
+    });
+
+    connection.onreconnected(() => {
+        console.log("SignalR reconnected");
+        hideConnectionBanner();
+        // Sync online status again on reconnect
+        if (activeConversationId) {
+            const participantIds = getParticipantIds();
+            if (participantIds.length > 0) {
+                connection.invoke("GetOnlineUsers", participantIds)
+                    .then(onlineUsers => {
+                        participantIds.forEach(id => {
+                            if (id !== currentProfileId) {
+                                updateUserStatus(id, onlineUsers.includes(id));
+                            }
+                        });
+                    })
+                    .catch(err => console.error("Error fetching online status after reconnect:", err));
+            }
+        }
+    });
+
+    connection.onclose(() => {
+        console.log("SignalR disconnected");
+        showConnectionBanner("Disconnected. Reconnecting...");
+        setTimeout(startConnection, 5000);
+    });
+
+    startConnection();
+
+    // ── Connection Banner Helpers ──
+    function showConnectionBanner(text) {
+        const banner = document.getElementById('connectionBanner');
+        if (banner) {
+            banner.textContent = text;
+            banner.classList.add('show');
+            banner.classList.remove('connected');
+        }
+    }
+
+    function hideConnectionBanner() {
+        const banner = document.getElementById('connectionBanner');
+        if (banner) {
+            banner.classList.remove('show');
+        }
+    }
+
+    // ── Intercept clicks on conversation list items (event delegation) ──
     const convoList = document.querySelector('.convo-list');
     if (convoList) {
       convoList.addEventListener('click', (e) => {
@@ -927,12 +1101,19 @@
 
         const data = await response.json();
 
+        activeConversationId = conversationId;
+
         if (pushToHistory) {
           const newUrl = '/Messages/Chat?conversationId=' + conversationId;
           history.pushState({ conversationId: conversationId }, '', newUrl);
         }
 
         renderChatPanel(data);
+
+        // Mark as read immediately on loading chat
+        if (connection.state === signalR.HubConnectionState.Connected) {
+            await connection.invoke("MarkConversationRead", conversationId);
+        }
       } catch (err) {
         console.error(err);
         // Fallback to traditional redirect if AJAX fetch fails
@@ -956,11 +1137,11 @@
 
           const isSent = msg.isSent;
           messagesHtml += `
-            <div class="chat-msg ${isSent ? 'sent' : 'received'}">
+            <div class="chat-msg ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}">
               ${!isSent ? `<div class="chat-msg-avatar">${data.partnerInitials}</div>` : ''}
               <div class="chat-bubble-wrap">
                 <div class="chat-bubble">${escapeHtml(msg.content)}</div>
-                <div class="chat-msg-time">${msg.createdAtFormatted}</div>
+                <div class="chat-msg-time">${msg.createdAtFormatted}${isSent && msg.isRead ? " ✓✓" : ""}</div>
               </div>
             </div>
           `;
@@ -974,12 +1155,15 @@
       }
 
       container.innerHTML = `
-        <div class="chat-panel">
+        <div class="chat-panel"
+             data-partner-profile-id="${data.partnerProfileId}"
+             data-participant-ids="${data.participantIds.join(',')}">
+          <div class="connection-banner" id="connectionBanner">Reconnecting to chat...</div>
           <div class="chat-header">
             <div class="chat-header-avatar">${data.partnerInitials}</div>
             <div class="chat-header-info">
               <div class="chat-header-name">${escapeHtml(data.partnerName)}</div>
-              <div class="chat-header-status">Online</div>
+              <div class="chat-header-status">Offline</div>
             </div>
             <div class="chat-header-actions">
               <button class="chat-action-btn" title="Search in conversation">
@@ -999,8 +1183,7 @@
             ${messagesHtml}
           </div>
 
-          <form action="/Messages/Send" method="post" class="chat-compose">
-            <input type="hidden" name="conversationId" value="${data.conversationId}" />
+          <div class="chat-compose">
             <div class="chat-compose-actions">
               <button type="button" class="chat-compose-icon" title="Attach image">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1013,17 +1196,46 @@
                 </svg>
               </button>
             </div>
-            <textarea name="content" class="chat-compose-input" placeholder="Send a message…" rows="1" required></textarea>
-            <button type="submit" class="chat-send-btn" title="Send">
+            <textarea class="chat-compose-input" placeholder="Send a message…" rows="1"></textarea>
+            <button type="button" class="chat-send-btn" title="Send">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
               </svg>
             </button>
-          </form>
+          </div>
         </div>
       `;
 
+      // Connect status if we reconnect
+      if (connection.state !== signalR.HubConnectionState.Connected) {
+          showConnectionBanner("Reconnecting to chat...");
+      } else {
+          hideConnectionBanner();
+      }
+
       setupComposeForm(container.querySelector('.chat-compose'));
+
+      // Check online status of conversation participants
+      if (connection.state === signalR.HubConnectionState.Connected) {
+          const participantIds = getParticipantIds();
+          if (participantIds.length > 0) {
+              connection.invoke("GetOnlineUsers", participantIds)
+                  .then(onlineUsers => {
+                      participantIds.forEach(id => {
+                          if (id !== currentProfileId) {
+                              updateUserStatus(id, onlineUsers.includes(id));
+                          }
+                      });
+                  })
+                  .catch(err => console.error("Error fetching online status:", err));
+          }
+      }
+
+      // Scroll to bottom
+      const chatMessages = container.querySelector('.chat-messages');
+      if (chatMessages) {
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
     }
 
     // Restore empty state panel when no conversation is active
@@ -1049,44 +1261,65 @@
       }
     }
 
-    // Set up auto-resize, key listeners, and AJAX submit on the compose form
-    function setupComposeForm(form) {
-      if (!form) return;
+    // Set up auto-resize, key listeners, and send on compose area
+    function setupComposeForm(composePanel) {
+      if (!composePanel) return;
 
-      const composeInput = form.querySelector('.chat-compose-input');
-      if (composeInput) {
-        composeInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (composeInput.value.trim().length > 0) {
-              submitMessage(form);
-            }
-          }
-        });
+      const messageInput = composePanel.querySelector('.chat-compose-input');
+      const sendBtn = composePanel.querySelector('.chat-send-btn');
+      if (!messageInput || !sendBtn) return;
 
-        composeInput.addEventListener('input', () => {
-          composeInput.style.height = 'auto';
-          composeInput.style.height = Math.min(composeInput.scrollHeight, 120) + 'px';
-        });
-      }
+      sendBtn.addEventListener('click', sendMessage);
 
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        submitMessage(form);
+      messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Typing indicator with throttle (at most once per 3 seconds)
+      let lastTypingTime = 0;
+      messageInput.addEventListener('input', () => {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+
+        const now = Date.now();
+        if (activeConversationId && now - lastTypingTime > 3000) {
+          connection.invoke("SendTypingIndicator", activeConversationId)
+            .catch(err => console.error("Error sending typing indicator:", err));
+          lastTypingTime = now;
+        }
       });
     }
 
-    // Submit message via AJAX POST
-    async function submitMessage(form) {
-      const input = form.querySelector('.chat-compose-input');
-      const conversationId = form.querySelector('input[name="conversationId"]').value;
-      const content = input.value.trim();
+    // Send message via SignalR with fallback to AJAX POST
+    async function sendMessage() {
+      const composePanel = document.querySelector('.chat-compose');
+      if (!composePanel) return;
+      const input = composePanel.querySelector('.chat-compose-input');
+      if (!input) return;
 
-      if (!content) return;
+      const content = input.value.trim();
+      if (!content || !activeConversationId) return;
 
       input.value = '';
       input.style.height = 'auto';
 
+      if (connection.state === signalR.HubConnectionState.Connected) {
+        try {
+          await connection.invoke("SendMessage", activeConversationId, content);
+        } catch (err) {
+          console.error("Failed to send message via SignalR:", err);
+          fallbackAjaxSend(activeConversationId, content, input);
+        }
+      } else {
+        fallbackAjaxSend(activeConversationId, content, input);
+      }
+    }
+
+    // Fallback AJAX message sending
+    async function fallbackAjaxSend(conversationId, content, inputElement) {
       try {
         const formData = new FormData();
         formData.append('conversationId', conversationId);
@@ -1101,70 +1334,164 @@
         });
 
         if (!response.ok) {
-          throw new Error('Failed to send message');
+          throw new Error('Fallback send failed');
         }
 
         const newMsg = await response.json();
-        appendMessage(newMsg);
-        updateConversationPreview(conversationId, content);
+        const formattedMsg = {
+          id: newMsg.id,
+          conversationId: conversationId,
+          senderProfileId: currentProfileId,
+          content: content,
+          createdAt: new Date().toISOString(),
+          isRead: false
+        };
+        appendMessageBubble(formattedMsg);
+        updateConversationPreview(formattedMsg);
       } catch (err) {
-        console.error(err);
+        console.error("Fallback send also failed:", err);
         alert('Failed to send message. Please try again.');
-        input.value = content;
+        inputElement.value = content;
       }
     }
 
-    // Append newly sent message bubble to DOM
-    function appendMessage(msg) {
+    // Append newly received/sent message bubble to DOM
+    function appendMessageBubble(msg) {
       const chatMessages = document.querySelector('.chat-messages');
       if (!chatMessages) return;
 
+      // Remove default empty prompt
       const emptyMsgDiv = chatMessages.querySelector('p');
       if (emptyMsgDiv && emptyMsgDiv.textContent.includes('Send a message to start')) {
         chatMessages.innerHTML = '';
       }
 
-      const isSent = msg.isSent;
+      const isSent = msg.senderProfileId === currentProfileId;
+      const initials = (msg.senderFirstName?.[0] || '') + (msg.senderLastName?.[0] || '');
+      const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
       const msgDiv = document.createElement('div');
       msgDiv.className = `chat-msg ${isSent ? 'sent' : 'received'}`;
+      msgDiv.dataset.messageId = msg.id;
 
-      let partnerInitials = '';
+      let avatarHtml = '';
       if (!isSent) {
-        const headerAvatar = document.querySelector('.chat-header-avatar');
-        partnerInitials = headerAvatar ? headerAvatar.textContent : '';
+          avatarHtml = `<div class="chat-msg-avatar">${initials.toUpperCase()}</div>`;
       }
 
       msgDiv.innerHTML = `
-        ${!isSent ? `<div class="chat-msg-avatar">${partnerInitials}</div>` : ''}
+        ${avatarHtml}
         <div class="chat-bubble-wrap">
           <div class="chat-bubble">${escapeHtml(msg.content)}</div>
-          <div class="chat-msg-time">${msg.createdAtFormatted}</div>
+          <div class="chat-msg-time">${time}${isSent && msg.isRead ? " ✓✓" : ""}</div>
         </div>
       `;
+
+      hideTypingIndicator();
 
       chatMessages.appendChild(msgDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Dynamically update left sidebar previews
-    function updateConversationPreview(conversationId, content) {
-      const convoItem = document.getElementById('convo-' + conversationId);
+    // Dynamically update conversation lists (left panel)
+    function updateConversationPreview(msg) {
+      const convoItem = document.getElementById(`convo-${msg.conversationId}`);
       if (convoItem) {
-        const previewEl = convoItem.querySelector('.convo-preview');
-        if (previewEl) previewEl.textContent = content;
+        const preview = convoItem.querySelector('.convo-preview');
+        const time = convoItem.querySelector('.convo-time');
+        if (preview) preview.textContent = msg.content;
+        if (time) time.textContent = 'now';
 
-        const timeEl = convoItem.querySelector('.convo-time');
-        if (timeEl) timeEl.textContent = 'now';
-
+        // Move to top of list
         const convoList = convoItem.closest('.convo-list');
-        const linkAnchor = convoItem.closest('a');
-        if (convoList && linkAnchor) {
-          convoList.insertBefore(linkAnchor, convoList.firstElementChild);
+        if (convoList && convoList.firstElementChild) {
+          const convoLink = convoItem.closest('a');
+          if (convoLink) {
+            convoList.insertBefore(convoLink, convoList.firstElementChild);
+          }
+        }
+
+        // Unread badge
+        if (msg.conversationId !== activeConversationId && msg.senderProfileId !== currentProfileId) {
+          convoItem.classList.add('unread');
+          let badge = convoItem.querySelector('.convo-unread-badge');
+          if (!badge) {
+              badge = document.createElement('div');
+              badge.className = 'convo-unread-badge';
+              badge.textContent = '1';
+              convoItem.appendChild(badge);
+          } else {
+              const current = parseInt(badge.textContent) || 0;
+              badge.textContent = current + 1;
+          }
         }
       }
     }
 
-    // HTML escape utility
+    let typingIndicatorTimeout;
+
+    function showTypingIndicator() {
+      let indicator = document.getElementById('typingIndicator');
+      const chatMessages = document.querySelector('.chat-messages');
+      if (!chatMessages) return;
+
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'typingIndicator';
+        indicator.className = 'chat-msg received';
+        indicator.innerHTML = `
+          <div class="chat-bubble-wrap">
+            <div class="chat-bubble typing-bubble">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+        `;
+        chatMessages.appendChild(indicator);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      // Auto-hide after 3 seconds
+      clearTimeout(typingIndicatorTimeout);
+      typingIndicatorTimeout = setTimeout(hideTypingIndicator, 3000);
+    }
+
+    // Hide typing indicator
+    function hideTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      if (indicator) indicator.remove();
+    }
+
+    function updateUserStatus(profileId, isOnline) {
+      const statusEl = document.querySelector('.chat-header-status');
+      if (statusEl) {
+        const chatPartnerProfileId = getChatPartnerProfileId();
+        if (profileId === chatPartnerProfileId) {
+          statusEl.textContent = isOnline ? 'Online' : 'Offline';
+          statusEl.style.color = isOnline ? '#4caf7d' : 'var(--muted)';
+        }
+      }
+
+      // Update dot indicators in conversation items
+      const convoItems = document.querySelectorAll('.convo-item');
+      convoItems.forEach(item => {
+        const onlineDot = item.querySelector('.online-dot');
+        if (onlineDot && item.dataset.participantId === profileId) {
+          onlineDot.style.display = isOnline ? 'block' : 'none';
+        }
+      });
+    }
+
+    function markMessagesAsRead() {
+      const sentMessages = document.querySelectorAll('.chat-msg.sent .chat-msg-time');
+      sentMessages.forEach(el => {
+        if (!el.textContent.includes('✓✓')) {
+          el.textContent += ' ✓✓';
+        }
+      });
+    }
+
     function escapeHtml(text) {
       if (!text) return '';
       return text
@@ -1180,6 +1507,18 @@
     if (chatMessages) {
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+
+    function getParticipantIds() {
+      const chatPanel = document.querySelector('.chat-panel');
+      const ids = chatPanel?.dataset?.participantIds;
+      return ids ? ids.split(',') : [];
+    }
+
+    function getChatPartnerProfileId() {
+      const chatPanel = document.querySelector('.chat-panel');
+      return chatPanel?.dataset?.partnerProfileId || '';
+    }
+
     setupComposeForm(document.querySelector('.chat-compose'));
   </script>
 

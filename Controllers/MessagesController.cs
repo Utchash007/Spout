@@ -140,6 +140,8 @@ public class MessagesController : Controller
                 currentProfileId = profileId,
                 partnerName = otherUser != null ? $"{otherUser.FirstName} {otherUser.LastName}" : "Unknown User",
                 partnerInitials = partnerInitials,
+                partnerProfileId = otherUser?.Id ?? "",
+                participantIds = conversation.Participants.Select(p => p.UserProfileId).ToList(),
                 messages = jsonMessages
             });
         }

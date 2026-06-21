@@ -7,6 +7,7 @@ using Twit.Repository.DBContext;
 using Twit.UnitOfWork;
 using Twit.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Twit.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +58,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<ISidebarService, SidebarService>();
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -78,6 +80,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+app.MapHub<ChatHub>("/chatHub");
 
 app.MapControllerRoute(
     name: "default",
