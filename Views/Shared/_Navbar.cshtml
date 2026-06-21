@@ -1,4 +1,5 @@
 @inject Twit.Services.INotificationService NotificationService
+@inject Twit.Services.IMessageService MessageService
 @inject Twit.UnitOfWork.IUnitOfWork UnitOfWork
 @using System.Security.Claims
 @using Microsoft.EntityFrameworkCore
@@ -6,7 +7,9 @@
     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
     string? profileId = null;
     int unreadCount = 0;
+    int unreadMessagesCount = 0;
     IEnumerable<Twit.Models.ViewModels.NotificationViewModel> recentNotifications = new List<Twit.Models.ViewModels.NotificationViewModel>();
+    IEnumerable<Twit.Models.Conversation> unreadConversations = new List<Twit.Models.Conversation>();
 
     if (userId != null)
     {
@@ -17,6 +20,13 @@
             profileId = profile.Id;
             unreadCount = await NotificationService.GetUnreadCount(profileId);
             recentNotifications = (await NotificationService.GetNotifications(profileId)).Take(5);
+
+            unreadMessagesCount = await MessageService.GetUnreadCount(profileId);
+            var conversations = await MessageService.GetConversations(profileId);
+            unreadConversations = conversations
+                .Where(c => c.Messages.Any(m => m.SenderProfileId != profileId && !m.IsRead))
+                .Take(5)
+                .ToList();
         }
     }
 }
@@ -166,31 +176,35 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        <span class="badge"></span>
+        @if (unreadMessagesCount > 0)
+        {
+          <span class="badge">@unreadMessagesCount</span>
+        }
       </button>
       <div class="nb-dropdown" id="nb-msg-drop">
         <div class="nb-drop-header">Messages</div>
-        <div class="nb-drop-item">
-          <span class="nb-item-title">Maya Lin</span>
-          <span class="nb-item-sub">Hey! Did you see that new feature?</span>
-        </div>
-        <div class="nb-drop-item">
-          <span class="nb-item-title">Jake Rivera</span>
-          <span class="nb-item-sub">Thanks for the follow back!</span>
-        </div>
-        <div class="nb-drop-item">
-          <span class="nb-item-title">Sara Chen</span>
-          <span class="nb-item-sub">Can we collab on something?</span>
-        </div>
-        <div class="nb-drop-item">
-          <span class="nb-item-title">Tom Nguyen</span>
-          <span class="nb-item-sub">Loved your latest post 🌱</span>
-        </div>
-        <div class="nb-drop-item">
-          <span class="nb-item-title">Amy Walsh</span>
-          <span class="nb-item-sub">See you at the meetup!</span>
-        </div>
-        <div class="nb-drop-footer">See all messages</div>
+        @if (unreadConversations.Any())
+        {
+          @foreach (var c in unreadConversations)
+          {
+            var otherUser = c.Participants.FirstOrDefault(p => p.UserProfileId != profileId)?.UserProfile;
+            var lastMsg = c.Messages.OrderByDescending(m => m.CreatedAt).FirstOrDefault();
+            var partnerName = otherUser != null ? $"{otherUser.FirstName} {otherUser.LastName}" : "Unknown User";
+            var lastMsgText = lastMsg != null ? lastMsg.Content : "";
+            
+            <div class="nb-drop-item" onclick="location.href='@Url.Action("Chat", "Messages", new { conversationId = c.Id })'">
+              <span class="nb-item-title">@partnerName</span>
+              <span class="nb-item-sub">@lastMsgText</span>
+            </div>
+          }
+        }
+        else
+        {
+          <div class="nb-drop-item" style="cursor: default;">
+            <span class="nb-item-title">No new messages</span>
+          </div>
+        }
+        <div class="nb-drop-footer" onclick="location.href='@Url.Action("Index", "Messages")'">See all messages</div>
       </div>
     </div>
 
