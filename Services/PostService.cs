@@ -75,7 +75,7 @@ namespace Twit.Services
 
         public async Task<IEnumerable<PostViewModel>> FetchPosts(string? userProfileId = null)
         {
-            var posts = await _unitOfWork.PostRepo.GetAll()
+            var posts = await _unitOfWork.PostRepo.GetAll().AsNoTracking()
                 .Include(p => p.UserProfile)
                     .ThenInclude(up => up.User)
                 .OrderByDescending(p => p.CreatedAt)
@@ -99,12 +99,12 @@ namespace Twit.Services
                     AuthorName   = $"{firstName} {lastName}".Trim(),
                     AuthorHandle = p.UserProfile?.User?.UserName ?? "",
                     AuthorInitials = initials,
-                    CommentCount = _unitOfWork.CommentRepo.GetAll().Count(c => c.PostId == p.Id),
+                    CommentCount = _unitOfWork.CommentRepo.GetAll().AsNoTracking().Count(c => c.PostId == p.Id),
                     IsLikedByCurrentUser = userProfileId != null && 
-                        _unitOfWork.LikeRepo.GetAll().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
+                        _unitOfWork.LikeRepo.GetAll().AsNoTracking().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
                     IsOwnedByCurrentUser = userProfileId != null && p.UserProfileId == userProfileId,
                     IsBookmarkedByCurrentUser = userProfileId != null && 
-                        _unitOfWork.BookmarkRepo.GetAll().Any(b => b.UserProfileId == userProfileId && b.PostId == p.Id)
+                        _unitOfWork.BookmarkRepo.GetAll().AsNoTracking().Any(b => b.UserProfileId == userProfileId && b.PostId == p.Id)
                 };
             });
         }

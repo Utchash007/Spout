@@ -26,7 +26,7 @@ public class MessagesController : Controller
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
 
-        var userProfile = await _unitOfWork.UserProfileRepo.GetAll()
+        var userProfile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
             .FirstOrDefaultAsync(up => up.UserId == userId);
 
         return userProfile?.Id;
@@ -65,7 +65,7 @@ public class MessagesController : Controller
 
         if (!string.IsNullOrEmpty(conversationId))
         {
-            conversation = await _unitOfWork.ConversationRepo.GetAll()
+            conversation = await _unitOfWork.ConversationRepo.GetAll().AsNoTracking()
                 .Include(c => c.Participants)
                 .ThenInclude(p => p.UserProfile)
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
@@ -73,7 +73,7 @@ public class MessagesController : Controller
         else if (!string.IsNullOrEmpty(withProfileId))
         {
             conversation = await _messageService.GetOrCreateConversation(profileId, withProfileId);
-            conversation = await _unitOfWork.ConversationRepo.GetAll()
+            conversation = await _unitOfWork.ConversationRepo.GetAll().AsNoTracking()
                 .Include(c => c.Participants)
                 .ThenInclude(p => p.UserProfile)
                 .FirstOrDefaultAsync(c => c.Id == conversation.Id);

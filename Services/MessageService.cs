@@ -15,7 +15,7 @@ namespace Twit.Services
 
         public async Task<IEnumerable<Conversation>> GetConversations(string profileId)
         {
-            var conversations = await _unitOfWork.ConversationRepo.GetAll()
+            var conversations = await _unitOfWork.ConversationRepo.GetAll().AsNoTracking()
                 .Include(c => c.Participants)
                 .ThenInclude(p => p.UserProfile)
                 .Include(c => c.Messages)
@@ -28,7 +28,7 @@ namespace Twit.Services
 
         public async Task<IEnumerable<Message>> GetMessages(string conversationId)
         {
-            return await _unitOfWork.MessageRepo.GetAll()
+            return await _unitOfWork.MessageRepo.GetAll().AsNoTracking()
                 .Include(m => m.Sender)
                 .Where(m => m.ConversationId == conversationId)
                 .OrderBy(m => m.CreatedAt)
@@ -59,9 +59,9 @@ namespace Twit.Services
 
         public async Task<int> GetUnreadCount(string profileId)
         {
-            return await _unitOfWork.MessageRepo.GetAll()
+            return await _unitOfWork.MessageRepo.GetAll().AsNoTracking()
                 .CountAsync(m => m.SenderProfileId != profileId && !m.IsRead
-                    && _unitOfWork.ConversationRepo.GetAll()
+                    && _unitOfWork.ConversationRepo.GetAll().AsNoTracking()
                         .Any(c => c.Id == m.ConversationId && c.Participants.Any(p => p.UserProfileId == profileId)));
         }
 

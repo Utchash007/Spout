@@ -29,7 +29,7 @@ public class HomeController : Controller
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // ApplicationUser.Id
         if (userId == null) return null;
 
-        var profile = await _unitOfWork.UserProfileRepo.GetAll()
+        var profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
             .FirstOrDefaultAsync(up => up.UserId == userId);
 
         return profile?.Id; // UserProfile.Id
@@ -40,7 +40,7 @@ public class HomeController : Controller
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return "?";
 
-        var profile = await _unitOfWork.UserProfileRepo.GetAll()
+        var profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
             .FirstOrDefaultAsync(up => up.UserId == userId);
 
         if (profile == null) return "?";

@@ -26,7 +26,7 @@ public class ProfileController : Controller
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
 
-        var userProfile = await _unitOfWork.UserProfileRepo.GetAll()
+        var userProfile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
             .FirstOrDefaultAsync(up => up.UserId == userId);
 
         return userProfile?.Id;
@@ -39,20 +39,20 @@ public class ProfileController : Controller
 
         if (!string.IsNullOrEmpty(handle))
         {
-            profile = await _unitOfWork.UserProfileRepo.GetAll()
+            profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
                 .Include(up => up.User)
                 .FirstOrDefaultAsync(up => up.User.UserName == handle);
         }
         else if (Id != null) 
         {
-            profile = await _unitOfWork.UserProfileRepo.GetAll()
+            profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
                 .Include(up => up.User)
                 .FirstOrDefaultAsync(up => up.Id == Id);
         }
         else
         {
             if (currentProfileId == null) return RedirectToAction("LoginPage", "Login");
-            profile = await _unitOfWork.UserProfileRepo.GetAll()
+            profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
                 .Include(up => up.User)
                 .FirstOrDefaultAsync(up => up.Id == currentProfileId);
         }
@@ -99,12 +99,12 @@ public class ProfileController : Controller
 
         if (currentProfileId != null)
         {
-            var followingIds = await _unitOfWork.FollowRepo.GetAll()
+            var followingIds = await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
                 .Where(f => f.FollowerId == currentProfileId)
                 .Select(f => f.FollowingId)
                 .ToListAsync();
 
-            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll()
+            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
                 .Include(up => up.User)
                 .Where(up => up.Id != currentProfileId && !followingIds.Contains(up.Id))
                 .Take(3)
@@ -114,7 +114,7 @@ public class ProfileController : Controller
         }
         else
         {
-            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll()
+            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
                 .Include(up => up.User)
                 .Take(3)
                 .ToListAsync();

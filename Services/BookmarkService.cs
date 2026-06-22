@@ -40,12 +40,12 @@ public class BookmarkService : IBookmarkService
 
     public async Task<IEnumerable<PostViewModel>> GetBookmarks(string userProfileId)
     {
-        var bookmarkedPostIds = await _unitOfWork.BookmarkRepo.GetAll()
+        var bookmarkedPostIds = await _unitOfWork.BookmarkRepo.GetAll().AsNoTracking()
             .Where(b => b.UserProfileId == userProfileId)
             .Select(b => b.PostId)
             .ToListAsync();
 
-        var posts = await _unitOfWork.PostRepo.GetAll()
+        var posts = await _unitOfWork.PostRepo.GetAll().AsNoTracking()
             .Include(p => p.UserProfile)
                 .ThenInclude(up => up.User)
             .Where(p => bookmarkedPostIds.Contains(p.Id))
@@ -70,8 +70,8 @@ public class BookmarkService : IBookmarkService
                 AuthorName   = $"{firstName} {lastName}".Trim(),
                 AuthorHandle = p.UserProfile?.User?.UserName ?? "",
                 AuthorInitials = initials,
-                CommentCount = _unitOfWork.CommentRepo.GetAll().Count(c => c.PostId == p.Id),
-                IsLikedByCurrentUser = _unitOfWork.LikeRepo.GetAll().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
+                CommentCount = _unitOfWork.CommentRepo.GetAll().AsNoTracking().Count(c => c.PostId == p.Id),
+                IsLikedByCurrentUser = _unitOfWork.LikeRepo.GetAll().AsNoTracking().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
                 IsOwnedByCurrentUser = p.UserProfileId == userProfileId,
                 IsBookmarkedByCurrentUser = true
             };
@@ -80,7 +80,7 @@ public class BookmarkService : IBookmarkService
 
     public async Task<bool> IsBookmarked(string userProfileId, string postId)
     {
-        return await _unitOfWork.BookmarkRepo.GetAll()
+        return await _unitOfWork.BookmarkRepo.GetAll().AsNoTracking()
             .AnyAsync(b => b.UserProfileId == userProfileId && b.PostId == postId);
     }
 }

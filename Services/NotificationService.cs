@@ -16,7 +16,7 @@ namespace Twit.Services
 
         public async Task<IEnumerable<NotificationViewModel>> GetNotifications(string profileId)
         {
-            var notifications = await _unitOfWork.NotificationRepo.GetAll()
+            var notifications = await _unitOfWork.NotificationRepo.GetAll().AsNoTracking()
                 .Include(n => n.Actor)
                 .Include(n => n.Post)
                 .Include(n => n.Comment)
@@ -79,7 +79,7 @@ namespace Twit.Services
 
         public async Task<int> GetUnreadCount(string profileId)
         {
-            return await _unitOfWork.NotificationRepo.GetAll()
+            return await _unitOfWork.NotificationRepo.GetAll().AsNoTracking()
                 .CountAsync(n => n.RecipientProfileId == profileId && !n.IsRead);
         }
 

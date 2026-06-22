@@ -7,7 +7,7 @@
     string? profileId = null;
     if (userId != null)
     {
-        var profile = await UnitOfWork.UserProfileRepo.GetAll()
+        var profile = await UnitOfWork.UserProfileRepo.GetAll().AsNoTracking()
             .FirstOrDefaultAsync(p => p.UserId == userId);
         profileId = profile?.Id;
     }

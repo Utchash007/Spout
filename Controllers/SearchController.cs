@@ -28,7 +28,7 @@ namespace Twit.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return null;
 
-            var profile = await _unitOfWork.UserProfileRepo.GetAll()
+            var profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
                 .FirstOrDefaultAsync(up => up.UserId == userId);
 
             return profile?.Id;
@@ -48,7 +48,7 @@ namespace Twit.Controllers
                 .Where(p => p.Content.Contains(query, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            var users = await _unitOfWork.UserProfileRepo.GetAll()
+            var users = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
                 .Include(up => up.User)
                 .Where(up =>
                     up.FirstName.ToLower().Contains(queryLower) ||

@@ -67,7 +67,7 @@ namespace Twit.Services
 
         public async Task<IEnumerable<CommentViewModel>> FetchComments(string postId)
         {
-            var comments = await _unitOfWork.CommentRepo.GetAll()
+            var comments = await _unitOfWork.CommentRepo.GetAll().AsNoTracking()
                 .Include(c => c.UserProfile)
                     .ThenInclude(up => up.User)
                 .Where(c => c.PostId == postId && c.ParentCommentId == null)

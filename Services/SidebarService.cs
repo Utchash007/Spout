@@ -16,7 +16,7 @@ public class SidebarService : ISidebarService
 
     public async Task<IEnumerable<TrendingTag>> GetTrendingTags(int count = 5)
     {
-        var posts = await _unitOfWork.PostRepo.GetAll()
+        var posts = await _unitOfWork.PostRepo.GetAll().AsNoTracking()
             .Select(p => p.Content)
             .ToListAsync();
 
@@ -31,12 +31,12 @@ public class SidebarService : ISidebarService
 
     public async Task<IEnumerable<UserProfile>> GetSuggestedUsers(string profileId, int count = 3)
     {
-        var followingIds = await _unitOfWork.FollowRepo.GetAll()
+        var followingIds = await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
             .Where(f => f.FollowerId == profileId)
             .Select(f => f.FollowingId)
             .ToListAsync();
 
-        var suggested = await _unitOfWork.UserProfileRepo.GetAll()
+        var suggested = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
             .Include(up => up.User)
             .Where(up => up.Id != profileId && !followingIds.Contains(up.Id))
             .OrderBy(_ => Guid.NewGuid())

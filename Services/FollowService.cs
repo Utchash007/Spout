@@ -19,7 +19,7 @@ namespace Twit.Services
         {
             if (followerProfileId == followingProfileId) return;
 
-            var exists = await _unitOfWork.FollowRepo.GetAll()
+            var exists = await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
                 .AnyAsync(f => f.FollowerId == followerProfileId && f.FollowingId == followingProfileId);
 
             if (exists) return;
@@ -84,13 +84,13 @@ namespace Twit.Services
 
         public async Task<bool> IsFollowing(string followerProfileId, string followingProfileId)
         {
-            return await _unitOfWork.FollowRepo.GetAll()
+            return await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
                 .AnyAsync(f => f.FollowerId == followerProfileId && f.FollowingId == followingProfileId);
         }
 
         public async Task<IEnumerable<UserProfile>> GetFollowers(string followingProfileId)
         {
-            return await _unitOfWork.FollowRepo.GetAll()
+            return await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
                 .Where(f => f.FollowingId == followingProfileId)
                 .Include(f => f.Follower)
                     .ThenInclude(u => u.User)
@@ -100,7 +100,7 @@ namespace Twit.Services
 
         public async Task<IEnumerable<UserProfile>> GetFollowing(string followerProfileId)
         {
-            return await _unitOfWork.FollowRepo.GetAll()
+            return await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
                 .Where(f => f.FollowerId == followerProfileId)
                 .Include(f => f.Following)
                     .ThenInclude(u => u.User)
@@ -110,13 +110,13 @@ namespace Twit.Services
 
         public async Task<int> GetFollowersCount(string followingProfileId)
         {
-            return await _unitOfWork.FollowRepo.GetAll()
+            return await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
                 .CountAsync(f => f.FollowingId == followingProfileId);
         }
 
         public async Task<int> GetFollowingCount(string followerProfileId)
         {
-            return await _unitOfWork.FollowRepo.GetAll()
+            return await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
                 .CountAsync(f => f.FollowerId == followerProfileId);
         }
     }
