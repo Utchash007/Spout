@@ -86,38 +86,46 @@ namespace Twit.Services
 
         public async Task<IEnumerable<PostViewModel>> FetchPosts(string? userProfileId = null)
         {
-            var posts = await _unitOfWork.PostRepo.GetAll().AsNoTracking()
-                .Include(p => p.UserProfile)
-                    .ThenInclude(up => up.User)
+            var rawData = await _unitOfWork.PostRepo.GetAll().AsNoTracking()
                 .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new
+                {
+                    Post = p,
+                    FirstName = p.UserProfile != null ? p.UserProfile.FirstName : "",
+                    LastName = p.UserProfile != null ? p.UserProfile.LastName : "",
+                    UserName = (p.UserProfile != null && p.UserProfile.User != null) ? p.UserProfile.User.UserName : "",
+                    CommentCount = _unitOfWork.CommentRepo.GetAll().AsNoTracking().Count(c => c.PostId == p.Id),
+                    IsLiked = userProfileId != null && 
+                        _unitOfWork.LikeRepo.GetAll().AsNoTracking().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
+                    IsBookmarked = userProfileId != null && 
+                        _unitOfWork.BookmarkRepo.GetAll().AsNoTracking().Any(b => b.UserProfileId == userProfileId && b.PostId == p.Id)
+                })
                 .ToListAsync();
 
-            return posts.Select(p =>
+            return rawData.Select(d =>
             {
-                var firstName = p.UserProfile?.FirstName ?? "";
-                var lastName  = p.UserProfile?.LastName  ?? "";
+                var firstName = d.FirstName ?? "";
+                var lastName  = d.LastName ?? "";
                 var initials  = (firstName.Length > 0 ? firstName[0].ToString() : "?")
                               + (lastName.Length  > 0 ? lastName[0].ToString()  : "");
 
                 return new PostViewModel
                 {
-                    Id           = p.Id,
-                    Content      = p.Content,
-                    LikesCount   = p.LikesCount,
-                    RepostCount  = p.RepostCount,
-                    IsRepost     = p.IsRepost,
-                    CreatedAt    = p.CreatedAt,
+                    Id           = d.Post.Id,
+                    Content      = d.Post.Content,
+                    LikesCount   = d.Post.LikesCount,
+                    RepostCount  = d.Post.RepostCount,
+                    IsRepost     = d.Post.IsRepost,
+                    CreatedAt    = d.Post.CreatedAt,
                     AuthorName   = $"{firstName} {lastName}".Trim(),
-                    AuthorHandle = p.UserProfile?.User?.UserName ?? "",
+                    AuthorHandle = d.UserName,
                     AuthorInitials = initials,
-                    CommentCount = _unitOfWork.CommentRepo.GetAll().AsNoTracking().Count(c => c.PostId == p.Id),
-                    IsLikedByCurrentUser = userProfileId != null && 
-                        _unitOfWork.LikeRepo.GetAll().AsNoTracking().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
-                    IsOwnedByCurrentUser = userProfileId != null && p.UserProfileId == userProfileId,
-                    IsBookmarkedByCurrentUser = userProfileId != null && 
-                        _unitOfWork.BookmarkRepo.GetAll().AsNoTracking().Any(b => b.UserProfileId == userProfileId && b.PostId == p.Id)
+                    CommentCount = d.CommentCount,
+                    IsLikedByCurrentUser = d.IsLiked,
+                    IsOwnedByCurrentUser = userProfileId != null && d.Post.UserProfileId == userProfileId,
+                    IsBookmarkedByCurrentUser = d.IsBookmarked
                 };
-            });
+            }).ToList();
         }
 
         public async Task DeletePost(string postId)
