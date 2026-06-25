@@ -16,22 +16,20 @@ namespace Twit.Controllers
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPostService _postService;
+        private readonly IUserProfileCacheService _userProfileCache;
 
-        public SearchController(IUnitOfWork unitOfWork, IPostService postService)
+        public SearchController(IUnitOfWork unitOfWork, IPostService postService, IUserProfileCacheService userProfileCache)
         {
             _unitOfWork = unitOfWork;
             _postService = postService;
+            _userProfileCache = userProfileCache;
         }
 
         private async Task<string?> GetCurrentUserProfileId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return null;
-
-            var profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-                .FirstOrDefaultAsync(up => up.UserId == userId);
-
-            return profile?.Id;
+            return await _userProfileCache.GetProfileId(userId);
         }
 
         public async Task<IActionResult> Index(string? query)

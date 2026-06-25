@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Twit.Models;
 using Twit.Models.ViewModels;
 using Twit.UnitOfWork;
@@ -9,11 +10,19 @@ namespace Twit.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notificationService;
+        private readonly IMemoryCache _cache;
 
-        public PostService(IUnitOfWork unitOfWork, INotificationService notificationService)
+        public PostService(IUnitOfWork unitOfWork, INotificationService notificationService, IMemoryCache cache)
         {
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
+            _cache = cache;
+        }
+
+        private void InvalidateTrendingTagsCache()
+        {
+            _cache.Remove("trending_tags_5");
+            _cache.Remove("trending_tags_10");
         }
 
         public async Task<Post> CreatePost(string userProfileId, string content)
@@ -26,6 +35,7 @@ namespace Twit.Services
 
             await _unitOfWork.PostRepo.Add(post);
             await _unitOfWork.SaveChangesAsync();
+            InvalidateTrendingTagsCache();
             return post;
         }
 
@@ -37,6 +47,7 @@ namespace Twit.Services
             post.Content = content;
             await _unitOfWork.PostRepo.Update(post);
             await _unitOfWork.SaveChangesAsync();
+            InvalidateTrendingTagsCache();
             return post;
         }
 
@@ -113,6 +124,7 @@ namespace Twit.Services
         {
             await _unitOfWork.PostRepo.Delete(postId);
             await _unitOfWork.SaveChangesAsync();
+            InvalidateTrendingTagsCache();
         }
     }
 }

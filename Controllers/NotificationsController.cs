@@ -13,22 +13,20 @@ public class NotificationsController : Controller
 {
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUserProfileCacheService _userProfileCache;
 
-    public NotificationsController(INotificationService notificationService, IUnitOfWork unitOfWork)
+    public NotificationsController(INotificationService notificationService, IUnitOfWork unitOfWork, IUserProfileCacheService userProfileCache)
     {
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
+        _userProfileCache = userProfileCache;
     }
 
     private async Task<string?> GetCurrentUserProfileId()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
-
-        var userProfile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
-
-        return userProfile?.Id;
+        return await _userProfileCache.GetProfileId(userId);
     }
 
     public async Task<IActionResult> Index()
@@ -42,6 +40,26 @@ public class NotificationsController : Controller
 
         ViewBag.UnreadCount = unreadCount;
         return View(notifications);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetRecentNotifications()
+    {
+        var profileId = await GetCurrentUserProfileId();
+        if (profileId == null) return Unauthorized();
+
+        var notifications = await _notificationService.GetNotifications(profileId);
+        var recent = notifications.Take(5).Select(n => new
+        {
+            n.Id,
+            n.Type,
+            n.ActorName,
+            n.ActorInitials,
+            n.TimeAgo,
+            n.IsRead
+        });
+
+        return Json(recent);
     }
 
     [HttpPost]

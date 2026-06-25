@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Twit.Models;
 using Twit.UnitOfWork;
 
@@ -7,10 +8,12 @@ namespace Twit.Services
     public class MessageService : IMessageService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMemoryCache _cache;
 
-        public MessageService(IUnitOfWork unitOfWork)
+        public MessageService(IUnitOfWork unitOfWork, IMemoryCache cache)
         {
             _unitOfWork = unitOfWork;
+            _cache = cache;
         }
 
         public async Task<IEnumerable<Conversation>> GetConversations(string profileId)
@@ -47,6 +50,15 @@ namespace Twit.Services
 
             await _unitOfWork.MessageRepo.Add(message);
             await _unitOfWork.SaveChangesAsync();
+
+            // Invalidate unread count for all participants in this conversation
+            var participantIds = await _unitOfWork.ConvParticipantRepo.GetAll().AsNoTracking()
+                .Where(p => p.ConversationId == conversationId && p.UserProfileId != senderProfileId)
+                .Select(p => p.UserProfileId)
+                .ToListAsync();
+            foreach (var pid in participantIds)
+                _cache.Remove($"msg_unread_{pid}");
+
             return message;
         }
 
@@ -55,14 +67,23 @@ namespace Twit.Services
             await _unitOfWork.MessageRepo.GetAll()
                 .Where(m => m.ConversationId == conversationId && m.SenderProfileId != profileId && !m.IsRead)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.IsRead, true));
+
+            _cache.Remove($"msg_unread_{profileId}");
         }
 
         public async Task<int> GetUnreadCount(string profileId)
         {
-            return await _unitOfWork.MessageRepo.GetAll().AsNoTracking()
+            var cacheKey = $"msg_unread_{profileId}";
+            if (_cache.TryGetValue(cacheKey, out int count))
+                return count;
+
+            count = await _unitOfWork.MessageRepo.GetAll().AsNoTracking()
                 .CountAsync(m => m.SenderProfileId != profileId && !m.IsRead
                     && _unitOfWork.ConversationRepo.GetAll().AsNoTracking()
                         .Any(c => c.Id == m.ConversationId && c.Participants.Any(p => p.UserProfileId == profileId)));
+
+            _cache.Set(cacheKey, count, TimeSpan.FromSeconds(30));
+            return count;
         }
 
         public async Task<Conversation> GetOrCreateConversation(string profileId1, string profileId2)

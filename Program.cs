@@ -1,5 +1,7 @@
+using System.IO.Compression;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Twit.Models;
 using Twit.Repository;
@@ -12,6 +14,20 @@ using Twit.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCaching();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        ["application/octet-stream"]); // for SignalR
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Optimal);
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.SmallestSize);
 
 // Reads from appsettings.Development.json locally, or environment variable on the server
 // Cloud: set ConnectionStrings__pgConn as an environment variable in the platform dashboard
@@ -58,6 +74,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<ISidebarService, SidebarService>();
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
+builder.Services.AddScoped<IUserProfileCacheService, UserProfileCacheService>();
 builder.Services.AddSignalR();
 
 var app = builder.Build();
@@ -75,7 +92,9 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders =  ForwardedHeaders.XForwardedProto
 });
 app.UseHttpsRedirection();
+app.UseResponseCompression();
 app.UseRouting();
+app.UseResponseCaching();
 app.UseAuthentication();
 app.UseAuthorization();
 

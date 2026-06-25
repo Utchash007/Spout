@@ -9,20 +9,19 @@ public class LikeController : Controller
 {
     private readonly ILikeService _likeService;
     private readonly IUnitOfWork _unitOfWork;
-    public LikeController(IUnitOfWork unitOfWork ,ILikeService likeService)
+    private readonly IUserProfileCacheService _userProfileCache;
+
+    public LikeController(IUnitOfWork unitOfWork, ILikeService likeService, IUserProfileCacheService userProfileCache)
     {
         _likeService = likeService;
         _unitOfWork = unitOfWork;
+        _userProfileCache = userProfileCache;
     }
     private async Task<string?> GetCurrentUserProfileId()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // ApplicationUser.Id
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
-
-        var profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
-
-        return profile?.Id; // UserProfile.Id
+        return await _userProfileCache.GetProfileId(userId);
     }
     [HttpPost]
     [Authorize]

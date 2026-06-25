@@ -15,33 +15,31 @@ public class HomeController : Controller
     private readonly IPostService _postService;
     private readonly ICommentService _commentService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUserProfileCacheService _userProfileCache;
 
-    public HomeController(IPostService postService, ICommentService commentService, IUnitOfWork unitOfWork)
+    public HomeController(IPostService postService, ICommentService commentService, IUnitOfWork unitOfWork, IUserProfileCacheService userProfileCache)
     {
         _postService = postService;
         _commentService = commentService;
         _unitOfWork = unitOfWork;
+        _userProfileCache = userProfileCache;
     }
 
     // Bridges ApplicationUser.Id (from cookie claim) → UserProfile.Id (used in business logic)
     private async Task<string?> GetCurrentUserProfileId()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // ApplicationUser.Id
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
-
-        var profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
-
-        return profile?.Id; // UserProfile.Id
+        return await _userProfileCache.GetProfileId(userId);
     }
 
     private async Task<string> GetCurrentUserInitials()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId == null) return "?";
+        var profileId = await GetCurrentUserProfileId();
+        if (profileId == null) return "?";
 
         var profile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
+            .FirstOrDefaultAsync(up => up.Id == profileId);
 
         if (profile == null) return "?";
 
@@ -113,12 +111,14 @@ public class HomeController : Controller
     }
 
     [HttpGet]
+    [ResponseCache(Duration = 15, Location = ResponseCacheLocation.Client)]
     public async Task<IActionResult> GetComments(string postId)
     {
         var comments = await _commentService.FetchComments(postId);
         return Json(comments);
     }
 
+    [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any)]
     public IActionResult Privacy()
     {
         return View();

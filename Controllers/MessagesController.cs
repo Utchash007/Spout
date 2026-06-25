@@ -14,22 +14,20 @@ public class MessagesController : Controller
 {
     private readonly IMessageService _messageService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUserProfileCacheService _userProfileCache;
 
-    public MessagesController(IMessageService messageService, IUnitOfWork unitOfWork)
+    public MessagesController(IMessageService messageService, IUnitOfWork unitOfWork, IUserProfileCacheService userProfileCache)
     {
         _messageService = messageService;
         _unitOfWork = unitOfWork;
+        _userProfileCache = userProfileCache;
     }
 
     private async Task<string?> GetCurrentUserProfileId()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
-
-        var userProfile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
-
-        return userProfile?.Id;
+        return await _userProfileCache.GetProfileId(userId);
     }
 
     public async Task<IActionResult> Index()
@@ -49,6 +47,33 @@ public class MessagesController : Controller
         };
 
         return View(viewModel);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetRecentUnreadConversations()
+    {
+        var profileId = await GetCurrentUserProfileId();
+        if (profileId == null) return Unauthorized();
+
+        var conversations = await _messageService.GetConversations(profileId);
+        var unread = conversations
+            .Where(c => c.Messages.Any(m => m.SenderProfileId != profileId && !m.IsRead))
+            .Take(5)
+            .Select(c => {
+                var otherUser = c.Participants.FirstOrDefault(p => p.UserProfileId != profileId)?.UserProfile;
+                var lastMsg = c.Messages.OrderByDescending(m => m.CreatedAt).FirstOrDefault();
+                var partnerName = otherUser != null ? $"{otherUser.FirstName} {otherUser.LastName}" : "Unknown User";
+                var lastMsgText = lastMsg != null ? lastMsg.Content : "";
+                return new
+                {
+                    id = c.Id,
+                    partnerName,
+                    lastMsgText
+                };
+            })
+            .ToList();
+
+        return Json(unread);
     }
 
     public async Task<IActionResult> Chat(string? conversationId, string? withProfileId)

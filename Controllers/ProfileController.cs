@@ -14,22 +14,21 @@ public class ProfileController : Controller
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPostService _postService;
     private readonly IFollowService _followService;
-    public ProfileController(IUnitOfWork unitOfWork, IPostService postService, IFollowService followService)
+    private readonly IUserProfileCacheService _userProfileCache;
+
+    public ProfileController(IUnitOfWork unitOfWork, IPostService postService, IFollowService followService, IUserProfileCacheService userProfileCache)
     {
         _unitOfWork = unitOfWork;
         _postService = postService;
         _followService = followService;
+        _userProfileCache = userProfileCache;
     }
 
     private async Task<string?> GetCurrentUserProfileId()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
-
-        var userProfile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
-
-        return userProfile?.Id;
+        return await _userProfileCache.GetProfileId(userId);
     }
 
     public async Task<IActionResult> Index(string? Id, string? handle)

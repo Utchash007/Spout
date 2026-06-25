@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Twit.Models;
 using Twit.UnitOfWork;
 
@@ -8,11 +9,19 @@ namespace Twit.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notificationService;
+        private readonly IMemoryCache _cache;
 
-        public FollowService(IUnitOfWork unitOfWork, INotificationService notificationService)
+        public FollowService(IUnitOfWork unitOfWork, INotificationService notificationService, IMemoryCache cache)
         {
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
+            _cache = cache;
+        }
+
+        private void InvalidateSuggestedUsersCache(string profileId)
+        {
+            _cache.Remove($"suggested_users_{profileId}_3");
+            _cache.Remove($"suggested_users_{profileId}_5");
         }
 
         public async Task Follow(string followerProfileId, string followingProfileId)
@@ -54,6 +63,7 @@ namespace Twit.Services
             );
 
             await _unitOfWork.SaveChangesAsync();
+            InvalidateSuggestedUsersCache(followerProfileId);
         }
 
         public async Task Unfollow(string followerProfileId, string followingProfileId)
@@ -80,6 +90,7 @@ namespace Twit.Services
             }
 
             await _unitOfWork.SaveChangesAsync();
+            InvalidateSuggestedUsersCache(followerProfileId);
         }
 
         public async Task<bool> IsFollowing(string followerProfileId, string followingProfileId)

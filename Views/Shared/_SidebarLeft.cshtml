@@ -1,6 +1,6 @@
 @inject Twit.Services.INotificationService NotificationService
 @inject Twit.Services.IMessageService MessageService
-@inject Twit.UnitOfWork.IUnitOfWork UnitOfWork
+@inject Twit.Services.IUserProfileCacheService UserProfileCache
 @using System.Security.Claims
 @using Microsoft.EntityFrameworkCore
 @{
@@ -11,11 +11,9 @@
 
     if (userId != null)
     {
-        var profile = await UnitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(p => p.UserId == userId);
-        if (profile != null)
+        profileId = await UserProfileCache.GetProfileId(userId);
+        if (profileId != null)
         {
-            profileId = profile.Id;
             unreadCount = await NotificationService.GetUnreadCount(profileId);
             unreadMessagesCount = await MessageService.GetUnreadCount(profileId);
         }

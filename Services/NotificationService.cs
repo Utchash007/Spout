@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Twit.Models;
 using Twit.Models.ViewModels;
 using Twit.UnitOfWork;
@@ -8,10 +9,12 @@ namespace Twit.Services
     public class NotificationService : INotificationService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMemoryCache _cache;
 
-        public NotificationService(IUnitOfWork unitOfWork)
+        public NotificationService(IUnitOfWork unitOfWork, IMemoryCache cache)
         {
             _unitOfWork = unitOfWork;
+            _cache = cache;
         }
 
         public async Task<IEnumerable<NotificationViewModel>> GetNotifications(string profileId)
@@ -59,6 +62,7 @@ namespace Twit.Services
                 notification.IsRead = true;
                 await _unitOfWork.NotificationRepo.Update(notification);
                 await _unitOfWork.SaveChangesAsync();
+                _cache.Remove($"notif_unread_{notification.RecipientProfileId}");
             }
         }
 
@@ -75,12 +79,20 @@ namespace Twit.Services
             }
 
             await _unitOfWork.SaveChangesAsync();
+            _cache.Remove($"notif_unread_{profileId}");
         }
 
         public async Task<int> GetUnreadCount(string profileId)
         {
-            return await _unitOfWork.NotificationRepo.GetAll().AsNoTracking()
+            var cacheKey = $"notif_unread_{profileId}";
+            if (_cache.TryGetValue(cacheKey, out int count))
+                return count;
+
+            count = await _unitOfWork.NotificationRepo.GetAll().AsNoTracking()
                 .CountAsync(n => n.RecipientProfileId == profileId && !n.IsRead);
+
+            _cache.Set(cacheKey, count, TimeSpan.FromSeconds(30));
+            return count;
         }
 
         public async Task CreateNotification(NotificationType type, string recipientProfileId, string actorProfileId, string? postId = null, string? commentId = null)
@@ -98,6 +110,7 @@ namespace Twit.Services
 
             await _unitOfWork.NotificationRepo.Add(notification);
             await _unitOfWork.SaveChangesAsync();
+            _cache.Remove($"notif_unread_{recipientProfileId}");
         }
     }
 }

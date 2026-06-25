@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Twit.Models;
 using Twit.Models.ViewModels;
 using Twit.UnitOfWork;
-
+using Twit.Services;
 namespace Twit.Controllers;
 
 [Authorize]
@@ -14,22 +14,20 @@ public class SettingsController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IUserProfileCacheService _userProfileCache;
 
-    public SettingsController(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager)
+    public SettingsController(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager, IUserProfileCacheService userProfileCache)
     {
         _unitOfWork = unitOfWork;
         _userManager = userManager;
+        _userProfileCache = userProfileCache;
     }
 
     private async Task<string?> GetCurrentUserProfileId()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
-
-        var userProfile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
-
-        return userProfile?.Id;
+        return await _userProfileCache.GetProfileId(userId);
     }
 
     public async Task<IActionResult> Index()

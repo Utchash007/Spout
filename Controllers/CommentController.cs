@@ -11,22 +11,20 @@ public class CommentController : Controller
 {
     private readonly ICommentService _commentService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUserProfileCacheService _userProfileCache;
 
-    public CommentController(ICommentService commentService, IUnitOfWork unitOfWork)
+    public CommentController(ICommentService commentService, IUnitOfWork unitOfWork, IUserProfileCacheService userProfileCache)
     {
         _commentService = commentService;
         _unitOfWork = unitOfWork;
+        _userProfileCache = userProfileCache;
     }
 
     private async Task<string?> GetCurrentUserProfileId()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
-
-        var userProfile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
-
-        return userProfile?.Id;
+        return await _userProfileCache.GetProfileId(userId);
     }
 
     [HttpPost]

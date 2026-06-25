@@ -13,12 +13,14 @@ public class ExploreController : Controller
     private readonly IPostService _postService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ISidebarService _sidebarService;
+    private readonly IUserProfileCacheService _userProfileCache;
 
-    public ExploreController(IPostService postService, IUnitOfWork unitOfWork, ISidebarService sidebarService)
+    public ExploreController(IPostService postService, IUnitOfWork unitOfWork, ISidebarService sidebarService, IUserProfileCacheService userProfileCache)
     {
         _postService = postService;
         _unitOfWork = unitOfWork;
         _sidebarService = sidebarService;
+        _userProfileCache = userProfileCache;
     }
 
     public async Task<IActionResult> Index()
@@ -48,10 +50,6 @@ public class ExploreController : Controller
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return null;
-
-        var userProfile = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(up => up.UserId == userId);
-
-        return userProfile?.Id;
+        return await _userProfileCache.GetProfileId(userId);
     }
 }

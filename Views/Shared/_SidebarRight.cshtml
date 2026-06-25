@@ -1,15 +1,12 @@
 @inject Twit.Services.ISidebarService SidebarService
-@inject Twit.UnitOfWork.IUnitOfWork UnitOfWork
+@inject Twit.Services.IUserProfileCacheService UserProfileCache
 @using System.Security.Claims
-@using Microsoft.EntityFrameworkCore
 @{
     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
     string? profileId = null;
     if (userId != null)
     {
-        var profile = await UnitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-            .FirstOrDefaultAsync(p => p.UserId == userId);
-        profileId = profile?.Id;
+        profileId = await UserProfileCache.GetProfileId(userId);
     }
 
     var trendingTags = await SidebarService.GetTrendingTags(5);
