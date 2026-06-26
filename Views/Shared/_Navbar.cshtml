@@ -189,6 +189,12 @@
 
     const allDrops = [notifDrop, msgDrop, profileDrop];
 
+    let cachedNotifications = null;
+    let lastNotifFetchTime = 0;
+    let cachedMessages = null;
+    let lastMsgFetchTime = 0;
+    const CACHE_DURATION_MS = 60000; // 1 minute (60 seconds)
+
     function toggle(drop) {
       const isOpen = drop.classList.contains('open');
       allDrops.forEach(d => d.classList.remove('open'));
@@ -212,10 +218,62 @@
 
     allDrops.forEach(d => d.addEventListener('click', function (e) { e.stopPropagation(); }));
 
+    // Listen to real-time events to invalidate cache
+    window.addEventListener('newMessageReceived', function () {
+      cachedMessages = null;
+      lastMsgFetchTime = 0;
+    });
+
+    window.addEventListener('newNotificationReceived', function () {
+      cachedNotifications = null;
+      lastNotifFetchTime = 0;
+    });
+
+    function renderNotificationsList(notifs, container) {
+      container.innerHTML = '';
+      if (notifs.length === 0) {
+        container.innerHTML = `
+          <div class="nb-drop-item" style="cursor: default;">
+            <span class="nb-item-title">No new notifications</span>
+          </div>`;
+        return;
+      }
+
+      notifs.forEach(n => {
+        let text = '';
+        switch (n.type) {
+          case 'Like': text = 'liked your Sprout'; break;
+          case 'Follow': text = 'started following you'; break;
+          case 'Repost': text = 'reposted your Sprout'; break;
+          case 'Comment': text = 'commented on your Sprout'; break;
+          case 'Mention': text = 'mentioned you'; break;
+          default: text = 'interacted with your Sprout';
+        }
+
+        const item = document.createElement('div');
+        item.className = 'nb-drop-item';
+        item.onclick = () => { location.href = '/Notifications'; };
+        item.innerHTML = `
+          <span class="nb-item-title">
+            <strong>${escapeHtml(n.actorName)}</strong> ${text}
+          </span>
+          <span class="nb-item-sub">${escapeHtml(n.timeAgo)}</span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
     async function loadNotifications() {
       const container = notifDrop.querySelector('.nb-drop-items-container');
       const loader = notifDrop.querySelector('.nb-drop-loading');
       if (!container || !loader) return;
+
+      const now = Date.now();
+      if (cachedNotifications && (now - lastNotifFetchTime < CACHE_DURATION_MS)) {
+        renderNotificationsList(cachedNotifications, container);
+        loader.style.display = 'none';
+        return;
+      }
 
       container.innerHTML = '';
       loader.style.display = 'block';
@@ -225,38 +283,11 @@
         if (!response.ok) throw new Error('Failed to fetch');
         const notifs = await response.json();
         
-        loader.style.display = 'none';
+        cachedNotifications = notifs;
+        lastNotifFetchTime = now;
         
-        if (notifs.length === 0) {
-          container.innerHTML = `
-            <div class="nb-drop-item" style="cursor: default;">
-              <span class="nb-item-title">No new notifications</span>
-            </div>`;
-          return;
-        }
-
-        notifs.forEach(n => {
-          let text = '';
-          switch (n.type) {
-            case 'Like': text = 'liked your Sprout'; break;
-            case 'Follow': text = 'started following you'; break;
-            case 'Repost': text = 'reposted your Sprout'; break;
-            case 'Comment': text = 'commented on your Sprout'; break;
-            case 'Mention': text = 'mentioned you'; break;
-            default: text = 'interacted with your Sprout';
-          }
-
-          const item = document.createElement('div');
-          item.className = 'nb-drop-item';
-          item.onclick = () => { location.href = '/Notifications'; };
-          item.innerHTML = `
-            <span class="nb-item-title">
-              <strong>${escapeHtml(n.actorName)}</strong> ${text}
-            </span>
-            <span class="nb-item-sub">${escapeHtml(n.timeAgo)}</span>
-          `;
-          container.appendChild(item);
-        });
+        loader.style.display = 'none';
+        renderNotificationsList(notifs, container);
       } catch (err) {
         loader.style.display = 'none';
         container.innerHTML = `
@@ -267,10 +298,39 @@
       }
     }
 
+    function renderMessagesList(convs, container) {
+      container.innerHTML = '';
+      if (convs.length === 0) {
+        container.innerHTML = `
+          <div class="nb-drop-item" style="cursor: default;">
+            <span class="nb-item-title">No new messages</span>
+          </div>`;
+        return;
+      }
+
+      convs.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'nb-drop-item';
+        item.onclick = () => { location.href = '/Messages/Chat?conversationId=' + encodeURIComponent(c.id); };
+        item.innerHTML = `
+          <span class="nb-item-title">${escapeHtml(c.partnerName)}</span>
+          <span class="nb-item-sub">${escapeHtml(c.lastMsgText)}</span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
     async function loadMessages() {
       const container = msgDrop.querySelector('.nb-drop-items-container');
       const loader = msgDrop.querySelector('.nb-drop-loading');
       if (!container || !loader) return;
+
+      const now = Date.now();
+      if (cachedMessages && (now - lastMsgFetchTime < CACHE_DURATION_MS)) {
+        renderMessagesList(cachedMessages, container);
+        loader.style.display = 'none';
+        return;
+      }
 
       container.innerHTML = '';
       loader.style.display = 'block';
@@ -280,26 +340,11 @@
         if (!response.ok) throw new Error('Failed to fetch');
         const convs = await response.json();
         
-        loader.style.display = 'none';
+        cachedMessages = convs;
+        lastMsgFetchTime = now;
         
-        if (convs.length === 0) {
-          container.innerHTML = `
-            <div class="nb-drop-item" style="cursor: default;">
-              <span class="nb-item-title">No new messages</span>
-            </div>`;
-          return;
-        }
-
-        convs.forEach(c => {
-          const item = document.createElement('div');
-          item.className = 'nb-drop-item';
-          item.onclick = () => { location.href = '/Messages/Chat?conversationId=' + encodeURIComponent(c.id); };
-          item.innerHTML = `
-            <span class="nb-item-title">${escapeHtml(c.partnerName)}</span>
-            <span class="nb-item-sub">${escapeHtml(c.lastMsgText)}</span>
-          `;
-          container.appendChild(item);
-        });
+        loader.style.display = 'none';
+        renderMessagesList(convs, container);
       } catch (err) {
         loader.style.display = 'none';
         container.innerHTML = `

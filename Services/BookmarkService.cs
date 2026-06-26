@@ -45,34 +45,41 @@ public class BookmarkService : IBookmarkService
             .Select(b => b.PostId)
             .ToListAsync();
 
-        var posts = await _unitOfWork.PostRepo.GetAll().AsNoTracking()
-            .Include(p => p.UserProfile)
-                .ThenInclude(up => up.User)
+        var rawData = await _unitOfWork.PostRepo.GetAll().AsNoTracking()
             .Where(p => bookmarkedPostIds.Contains(p.Id))
             .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new
+            {
+                Post = p,
+                FirstName = p.UserProfile != null ? p.UserProfile.FirstName : "",
+                LastName = p.UserProfile != null ? p.UserProfile.LastName : "",
+                UserName = (p.UserProfile != null && p.UserProfile.User != null) ? p.UserProfile.User.UserName : "",
+                CommentCount = _unitOfWork.CommentRepo.GetAll().AsNoTracking().Count(c => c.PostId == p.Id),
+                IsLiked = _unitOfWork.LikeRepo.GetAll().AsNoTracking().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id)
+            })
             .ToListAsync();
 
-        return posts.Select(p =>
+        return rawData.Select(d =>
         {
-            var firstName = p.UserProfile?.FirstName ?? "";
-            var lastName  = p.UserProfile?.LastName  ?? "";
+            var firstName = d.FirstName ?? "";
+            var lastName  = d.LastName ?? "";
             var initials  = (firstName.Length > 0 ? firstName[0].ToString() : "?")
                           + (lastName.Length  > 0 ? lastName[0].ToString()  : "");
 
             return new PostViewModel
             {
-                Id           = p.Id,
-                Content      = p.Content,
-                LikesCount   = p.LikesCount,
-                RepostCount  = p.RepostCount,
-                IsRepost     = p.IsRepost,
-                CreatedAt    = p.CreatedAt,
+                Id           = d.Post.Id,
+                Content      = d.Post.Content,
+                LikesCount   = d.Post.LikesCount,
+                RepostCount  = d.Post.RepostCount,
+                IsRepost     = d.Post.IsRepost,
+                CreatedAt    = d.Post.CreatedAt,
                 AuthorName   = $"{firstName} {lastName}".Trim(),
-                AuthorHandle = p.UserProfile?.User?.UserName ?? "",
+                AuthorHandle = d.UserName,
                 AuthorInitials = initials,
-                CommentCount = _unitOfWork.CommentRepo.GetAll().AsNoTracking().Count(c => c.PostId == p.Id),
-                IsLikedByCurrentUser = _unitOfWork.LikeRepo.GetAll().AsNoTracking().Any(l => l.UserProfileId == userProfileId && l.PostId == p.Id),
-                IsOwnedByCurrentUser = p.UserProfileId == userProfileId,
+                CommentCount = d.CommentCount,
+                IsLikedByCurrentUser = d.IsLiked,
+                IsOwnedByCurrentUser = d.Post.UserProfileId == userProfileId,
                 IsBookmarkedByCurrentUser = true
             };
         }).ToList();

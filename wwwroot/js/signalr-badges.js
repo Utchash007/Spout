@@ -16,6 +16,9 @@
             badge.textContent = current + 1;
             badge.style.display = 'flex';
         }
+        
+        // Dispatch custom event to invalidate messages cache
+        window.dispatchEvent(new CustomEvent('newMessageReceived'));
     });
 
     connection.start().catch(err => console.error("Badge SignalR error:", err));

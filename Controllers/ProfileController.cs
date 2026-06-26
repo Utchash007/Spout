@@ -15,13 +15,15 @@ public class ProfileController : Controller
     private readonly IPostService _postService;
     private readonly IFollowService _followService;
     private readonly IUserProfileCacheService _userProfileCache;
+    private readonly ISidebarService _sidebarService;
 
-    public ProfileController(IUnitOfWork unitOfWork, IPostService postService, IFollowService followService, IUserProfileCacheService userProfileCache)
+    public ProfileController(IUnitOfWork unitOfWork, IPostService postService, IFollowService followService, IUserProfileCacheService userProfileCache, ISidebarService sidebarService)
     {
         _unitOfWork = unitOfWork;
         _postService = postService;
         _followService = followService;
         _userProfileCache = userProfileCache;
+        _sidebarService = sidebarService;
     }
 
     private async Task<string?> GetCurrentUserProfileId()
@@ -96,30 +98,8 @@ public class ProfileController : Controller
             ViewBag.IsFollowing = false;
         }
 
-        if (currentProfileId != null)
-        {
-            var followingIds = await _unitOfWork.FollowRepo.GetAll().AsNoTracking()
-                .Where(f => f.FollowerId == currentProfileId)
-                .Select(f => f.FollowingId)
-                .ToListAsync();
-
-            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-                .Include(up => up.User)
-                .Where(up => up.Id != currentProfileId && !followingIds.Contains(up.Id))
-                .Take(3)
-                .ToListAsync();
-
-            ViewBag.SuggestedUsers = suggestedUsers;
-        }
-        else
-        {
-            var suggestedUsers = await _unitOfWork.UserProfileRepo.GetAll().AsNoTracking()
-                .Include(up => up.User)
-                .Take(3)
-                .ToListAsync();
-
-            ViewBag.SuggestedUsers = suggestedUsers;
-        }
+        var suggestedUsers = await _sidebarService.GetSuggestedUsers(currentProfileId ?? "", 3);
+        ViewBag.SuggestedUsers = suggestedUsers;
 
         return View(model);
     }
